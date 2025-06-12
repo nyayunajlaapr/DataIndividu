@@ -1,0 +1,20 @@
+{
+    "name": "iae/layanan-data-individu",
+    "description": "Layanan Data Individu",
+    "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Iae\\LayananDataIndividu\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "nyayunajlaapr",
+            "email": "26najlapritia@gmail.com"
+        }
+    ],
+    "require": {
+        "webonyx/graphql-php": "^15.20"
+    }
+}
