@@ -108,8 +108,8 @@
             <label for="pasien_jenis_kelamin">Jenis Kelamin:</label>
             <select id="pasien_jenis_kelamin" required>
                 <option value="">Pilih</option>
-                <option value="Laki-laki">Laki-laki</option>
-                <option value="Perempuan">Perempuan</option>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
             </select>
             <label for="pasien_tanggal_lahir">Tanggal Lahir:</label>
             <input type="date" id="pasien_tanggal_lahir" required>
@@ -132,45 +132,92 @@
 
         <h2>Data Dokter</h2>
         <button onclick="fetchData('allDokter')">Muat Semua Dokter</button>
+        <button onclick="showForm('dokterForm', 'add')">Tambah Dokter Baru</button>
         <div id="dokterData" class="data-section"></div>
+
+        <div id="dokterForm" class="form-section" style="display: none;">
+            <h3><span id="dokter_formTitle">Tambah</span> Dokter</h3>
+            <input type="hidden" id="dokter_id_dokter">
+            <label for="dokter_id_nakes">ID Nakes:</label>
+            <input type="number" id="dokter_id_nakes" required>
+            <label for="dokter_nip">NIP:</label>
+            <input type="text" id="dokter_nip" required>
+            <label for="dokter_nama_dokter">Nama Dokter:</label>
+            <input type="text" id="dokter_nama_dokter" required>
+            <label for="dokter_status">Status:</label>
+            <input type="text" id="dokter_status" required>
+            <label for="dokter_str">STR:</label>
+            <input type="text" id="dokter_str" required>
+            <label for="dokter_spesialisasi">Spesialisasi:</label>
+            <input type="text" id="dokter_spesialisasi" required>
+            <label for="dokter_no_hp">No HP:</label>
+            <input type="text" id="dokter_no_hp" required>
+            <button onclick="submitDokterForm()">Simpan</button>
+            <button onclick="hideForm('dokterForm')">Batal</button>
+        </div>
 
         <hr>
 
         <h2>Data Perawat</h2>
         <button onclick="fetchData('allPerawat')">Muat Semua Perawat</button>
+        <button onclick="showForm('perawatForm', 'add')">Tambah Perawat Baru</button>
         <div id="perawatData" class="data-section"></div>
+
+        <div id="perawatForm" class="form-section" style="display: none;">
+            <h3><span id="perawat_formTitle">Tambah</span> Perawat</h3>
+            <input type="hidden" id="perawat_id_perawat">
+            <label for="perawat_id_nakes">ID Nakes:</label>
+            <input type="number" id="perawat_id_nakes" required>
+            <label for="perawat_nip">NIP:</label>
+            <input type="text" id="perawat_nip" required>
+            <label for="perawat_nama_perawat">Nama Perawat:</label>
+            <input type="text" id="perawat_nama_perawat" required>
+            <label for="perawat_status">Status:</label>
+            <input type="text" id="perawat_status" required>
+            <label for="perawat_str">STR:</label>
+            <input type="text" id="perawat_str" required>
+            <label for="perawat_spesialisasi">Spesialisasi:</label>
+            <input type="text" id="perawat_spesialisasi" required>
+            <label for="perawat_no_hp">No HP:</label>
+            <input type="text" id="perawat_no_hp" required>
+            <button onclick="submitPerawatForm()">Simpan</button>
+            <button onclick="hideForm('perawatForm')">Batal</button>
+        </div>
     </div>
 
     <div id="detail-container"></div>
     <div id="modal-overlay" onclick="hideDetail()"></div>
 
     <script>
-        const API_URL = 'http://localhost:8000'; // Ganti jika endpoint berbeda
+        const API_URL = 'http://localhost:8000'; 
 
-        // Fungsi untuk menampilkan/menyembunyikan form
+        
         function showForm(formId, mode = 'add', data = {}) {
             const form = document.getElementById(formId);
             let formTitleElement;
 
-            // Memilih elemen judul berdasarkan formId
+            
             if (formId === 'tenagaKesehatanForm') {
                 formTitleElement = document.getElementById('tk_formTitle');
             } else if (formId === 'pasienForm') {
                 formTitleElement = document.getElementById('pasien_formTitle');
+            } else if (formId === 'dokterForm') {
+                formTitleElement = document.getElementById('dokter_formTitle');
+            } else if (formId === 'perawatForm') {
+                formTitleElement = document.getElementById('perawat_formTitle');
             }
-            // TODO: Tambahkan else if untuk Dokter dan Perawat nanti
 
             if (!formTitleElement) {
                 console.error(`Form title element not found for formId: ${formId}`);
-                return; // Hentikan eksekusi jika elemen judul tidak ditemukan
+                return; /
             }
 
             form.style.display = 'block';
-            console.log(`showForm called for ${formId} in ${mode} mode with data:`, data); // DEBUG
+            console.log(`showForm called for ${formId} in ${mode} mode with data:`, data); 
 
             if (mode === 'add') {
                 formTitleElement.textContent = 'Tambah';
-                // Reset form fields berdasarkan formId
+                
                 if (formId === 'tenagaKesehatanForm') {
                     document.getElementById('tk_id_nakes').value = '';
                     document.getElementById('tk_nip').value = '';
@@ -180,13 +227,30 @@
                     document.getElementById('pasien_id_pasien').value = '';
                     document.getElementById('pasien_nik').value = '';
                     document.getElementById('pasien_nama_lengkap').value = '';
-                    document.getElementById('pasien_jenis_kelamin').value = '';
+                    document.getElementById('pasien_jenis_kelamin').value = ''; // Set to empty for "Pilih"
                     document.getElementById('pasien_tanggal_lahir').value = '';
                     document.getElementById('pasien_no_bpjs').value = '';
                     document.getElementById('pasien_pekerjaan').value = '';
                     document.getElementById('pasien_status_pernikahan').value = '';
+                } else if (formId === 'dokterForm') {
+                    document.getElementById('dokter_id_dokter').value = '';
+                    document.getElementById('dokter_id_nakes').value = '';
+                    document.getElementById('dokter_nip').value = '';
+                    document.getElementById('dokter_nama_dokter').value = '';
+                    document.getElementById('dokter_status').value = '';
+                    document.getElementById('dokter_str').value = '';
+                    document.getElementById('dokter_spesialisasi').value = '';
+                    document.getElementById('dokter_no_hp').value = '';
+                } else if (formId === 'perawatForm') {
+                    document.getElementById('perawat_id_perawat').value = '';
+                    document.getElementById('perawat_id_nakes').value = '';
+                    document.getElementById('perawat_nip').value = '';
+                    document.getElementById('perawat_nama_perawat').value = '';
+                    document.getElementById('perawat_status').value = '';
+                    document.getElementById('perawat_str').value = '';
+                    document.getElementById('perawat_spesialisasi').value = '';
+                    document.getElementById('perawat_no_hp').value = '';
                 }
-                // TODO: Tambahkan reset untuk Dokter dan Perawat
             } else if (mode === 'edit') {
                 formTitleElement.textContent = 'Edit';
                 // Isi form fields dengan data yang ada berdasarkan formId
@@ -205,9 +269,14 @@
                     document.getElementById('pasien_id_pasien').value = data.id_pasien || '';
                     document.getElementById('pasien_nik').value = data.nik || '';
                     document.getElementById('pasien_nama_lengkap').value = data.nama_lengkap || '';
+                    
+                    // --- PERUBAHAN UTAMA DI SINI UNTUK JENIS KELAMIN SAAT EDIT ---
+                    // Karena select option value-nya adalah 'L' atau 'P', kita bisa langsung assign
                     document.getElementById('pasien_jenis_kelamin').value = data.jenis_kelamin || '';
+                    // --- AKHIR PERUBAHAN ---
+
                     // Tanggal lahir perlu diformat ulang jika dari DB dalam format berbeda (misal YYYY-MM-DD HH:MM:SS)
-                    document.getElementById('pasien_tanggal_lahir').value = data.tanggal_lahir ? data.tanggal_lahir.split('T')[0] : ''; // Ambil hanya YYYY-MM-DD
+                    document.getElementById('pasien_tanggal_lahir').value = data.tanggal_lahir ? data.tanggal_lahir.split(' ')[0] : ''; // Menggunakan split(' ') untuk memisahkan tanggal dari waktu
                     document.getElementById('pasien_no_bpjs').value = data.no_bpjs || '';
                     document.getElementById('pasien_pekerjaan').value = data.pekerjaan || '';
                     document.getElementById('pasien_status_pernikahan').value = data.status_pernikahan || '';
@@ -221,8 +290,45 @@
                         pekerjaan: document.getElementById('pasien_pekerjaan').value,
                         status_pernikahan: document.getElementById('pasien_status_pernikahan').value
                     }); // DEBUG
+                } else if (formId === 'dokterForm') {
+                    document.getElementById('dokter_id_dokter').value = data.id_dokter || '';
+                    document.getElementById('dokter_id_nakes').value = data.id_nakes || '';
+                    document.getElementById('dokter_nip').value = data.nip || '';
+                    document.getElementById('dokter_nama_dokter').value = data.nama_dokter || '';
+                    document.getElementById('dokter_status').value = data.status || '';
+                    document.getElementById('dokter_str').value = data.str || '';
+                    document.getElementById('dokter_spesialisasi').value = data.spesialisasi || '';
+                    document.getElementById('dokter_no_hp').value = data.no_hp || '';
+                    console.log("Dokter form fields populated for edit:", {
+                        id_dokter: document.getElementById('dokter_id_dokter').value,
+                        id_nakes: document.getElementById('dokter_id_nakes').value,
+                        nip: document.getElementById('dokter_nip').value,
+                        nama_dokter: document.getElementById('dokter_nama_dokter').value,
+                        status: document.getElementById('dokter_status').value,
+                        str: document.getElementById('dokter_str').value,
+                        spesialisasi: document.getElementById('dokter_spesialisasi').value,
+                        no_hp: document.getElementById('dokter_no_hp').value
+                    }); // DEBUG
+                } else if (formId === 'perawatForm') {
+                    document.getElementById('perawat_id_perawat').value = data.id_perawat || '';
+                    document.getElementById('perawat_id_nakes').value = data.id_nakes || '';
+                    document.getElementById('perawat_nip').value = data.nip || '';
+                    document.getElementById('perawat_nama_perawat').value = data.nama_perawat || '';
+                    document.getElementById('perawat_status').value = data.status || '';
+                    document.getElementById('perawat_str').value = data.str || '';
+                    document.getElementById('perawat_spesialisasi').value = data.spesialisasi || '';
+                    document.getElementById('perawat_no_hp').value = data.no_hp || '';
+                    console.log("Perawat form fields populated for edit:", {
+                        id_perawat: document.getElementById('perawat_id_perawat').value,
+                        id_nakes: document.getElementById('perawat_id_nakes').value,
+                        nip: document.getElementById('perawat_nip').value,
+                        nama_perawat: document.getElementById('perawat_nama_perawat').value,
+                        status: document.getElementById('perawat_status').value,
+                        str: document.getElementById('perawat_str').value,
+                        spesialisasi: document.getElementById('perawat_spesialisasi').value,
+                        no_hp: document.getElementById('perawat_no_hp').value
+                    }); // DEBUG
                 }
-                // TODO: Tambahkan isi form untuk Dokter dan Perawat
             }
         }
 
@@ -326,7 +432,11 @@
                     if (header.includes('tanggal_lahir') && row[header]) {
                         const date = new Date(row[header]);
                         tableHtml += `<td>${date.toLocaleDateString('id-ID')}</td>`; // Format tanggal sesuai lokal Indonesia
-                    } else {
+                    } else if (header === 'jenis_kelamin' && row[header]) {
+                        // Tampilkan 'Laki-laki' atau 'Perempuan' di tabel
+                        tableHtml += `<td>${row[header] === 'L' ? 'Laki-laki' : (row[header] === 'P' ? 'Perempuan' : row[header])}</td>`;
+                    }
+                    else {
                         tableHtml += `<td>${row[header] !== null ? row[header] : 'N/A'}</td>`;
                     }
                 });
@@ -426,7 +536,8 @@
             const id_pasien_val = document.getElementById('pasien_id_pasien').value;
             const nik = document.getElementById('pasien_nik').value;
             const nama_lengkap = document.getElementById('pasien_nama_lengkap').value;
-            const jenis_kelamin = document.getElementById('pasien_jenis_kelamin').value;
+            // LANGSUNG AMBIL NILAI 'L' atau 'P' dari select
+            const jenis_kelamin = document.getElementById('pasien_jenis_kelamin').value; 
             const tanggal_lahir = document.getElementById('pasien_tanggal_lahir').value;
             const no_bpjs = document.getElementById('pasien_no_bpjs').value;
             const pekerjaan = document.getElementById('pasien_pekerjaan').value;
@@ -435,6 +546,14 @@
             // Validasi sederhana
             if (!nik || !nama_lengkap || !jenis_kelamin || !tanggal_lahir || !pekerjaan || !status_pernikahan) {
                 alert('Semua field wajib (NIK, Nama Lengkap, Jenis Kelamin, Tanggal Lahir, Pekerjaan, Status Pernikahan) harus diisi.');
+                return;
+            }
+            if (jenis_kelamin === '') { // Pastikan 'Pilih' tidak terpilih
+                alert('Jenis Kelamin harus dipilih.');
+                return;
+            }
+            if (status_pernikahan === '') { // Pastikan 'Pilih' tidak terpilih
+                alert('Status Pernikahan harus dipilih.');
                 return;
             }
 
@@ -518,26 +637,212 @@
             }
         }
 
-        // Fungsi untuk menginisialisasi form edit
-        function editEntity(entity, encodedData) {
-            console.log("editEntity called. Entity:", entity, "Encoded Data:", encodedData); // DEBUG
+        // Fungsi submit untuk Dokter
+        async function submitDokterForm() {
+            const id_dokter = document.getElementById('dokter_id_dokter').value;
+            const idNakes = document.getElementById('dokter_id_nakes').value;
+            const nip = document.getElementById('dokter_nip').value;
+            const namaDokter = document.getElementById('dokter_nama_dokter').value;
+            const status = document.getElementById('dokter_status').value;
+            const str = document.getElementById('dokter_str').value;
+            const spesialisasi = document.getElementById('dokter_spesialisasi').value;
+            const noHp = document.getElementById('dokter_no_hp').value;
+
+            let mutation = '';
+            let variables = {};
+            let mutationName = '';
+
+            if (id_dokter) {
+                mutationName = 'updateDokter';
+                mutation = `
+                    mutation UpdateDokter(
+                        $id_dokter: Int!, $idNakes: Int, $nip: String, $namaDokter: String,
+                        $status: String, $str: String, $spesialisasi: String, $noHp: String
+                    ) {
+                        updateDokter(
+                            id_dokter: $id_dokter, idNakes: $idNakes, nip: $nip, namaDokter: $namaDokter,
+                            status: $status, str: $str, spesialisasi: $spesialisasi, noHp: $noHp
+                        ) {
+                            id_dokter
+                        }
+                    }
+                `;
+                variables = { id_dokter: parseInt(id_dokter), idNakes: parseInt(idNakes), nip, namaDokter, status, str, spesialisasi, noHp };
+            } else {
+                mutationName = 'createDokter';
+                mutation = `
+                    mutation CreateDokter(
+                        $idNakes: Int!, $nip: String!, $namaDokter: String!, $status: String!,
+                        $str: String!, $spesialisasi: String!, $noHp: String!
+                    ) {
+                        createDokter(
+                            idNakes: $idNakes, nip: $nip, namaDokter: $namaDokter, status: $status,
+                            str: $str, spesialisasi: $spesialisasi, noHp: $noHp
+                        ) {
+                            id_dokter
+                        }
+                    }
+                `;
+                variables = { idNakes: parseInt(idNakes), nip, namaDokter, status, str, spesialisasi, noHp };
+            }
+
             try {
-                const data = JSON.parse(atob(encodedData)); // Decode Base64 kembali ke JSON
-                console.log("Decoded data for edit:", data); // DEBUG
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: mutation, variables: variables }),
+                });
+
+                const result = await response.json();
+                if (result.errors) {
+                    alert('Error: ' + result.errors[0].message);
+                } else if (result.data && result.data[mutationName]) {
+                    alert(`Data Dokter ${mutationName === 'createDokter' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    hideForm('dokterForm');
+                    fetchData('allDokter');
+                }
+            } catch (error) {
+                alert('Fetch error: ' + error.message);
+            }
+        }
+
+        // Fungsi submit untuk Perawat
+        async function submitPerawatForm() {
+            const id_perawat_val = document.getElementById('perawat_id_perawat').value;
+            const idNakes = document.getElementById('perawat_id_nakes').value;
+            const nip = document.getElementById('perawat_nip').value;
+            const namaPerawat = document.getElementById('perawat_nama_perawat').value;
+            const status = document.getElementById('perawat_status').value;
+            const str = document.getElementById('perawat_str').value;
+            const spesialisasi = document.getElementById('perawat_spesialisasi').value;
+            const noHp = document.getElementById('perawat_no_hp').value;
+
+            if (!idNakes || !nip || !namaPerawat || !status || !str || !spesialisasi || !noHp) {
+                alert('Semua field (ID Nakes, NIP, Nama Perawat, Status, STR, Spesialisasi, No HP) harus diisi.');
+                return;
+            }
+
+            let mutation = '';
+            let variables = {};
+            let mutationName = '';
+
+            if (id_perawat_val) {
+                mutationName = 'updatePerawat';
+                mutation = `
+                    mutation UpdatePerawat(
+                        $id_perawat: Int!, $idNakes: Int!, $nip: String, $namaPerawat: String,
+                        $status: String, $str: String, $spesialisasi: String, $noHp: String
+                    ) {
+                        updatePerawat(
+                            id_perawat: $id_perawat, idNakes: $idNakes, nip: $nip, namaPerawat: $namaPerawat,
+                            status: $status, str: $str, spesialisasi: $spesialisasi, noHp: $noHp
+                        ) {
+                            id_perawat
+                            nip
+                            namaPerawat
+                            status
+                            str
+                            spesialisasi
+                            noHp
+                        }
+                    }
+                `;
+                variables = {
+                    id_perawat: parseInt(id_perawat_val),
+                    idNakes: parseInt(idNakes),
+                    nip,
+                    namaPerawat,
+                    status,
+                    str,
+                    spesialisasi,
+                    noHp
+                };
+            } else {
+                mutationName = 'createPerawat';
+                mutation = `
+                    mutation CreatePerawat(
+                        $idNakes: Int!, $nip: String!, $namaPerawat: String!,
+                        $status: String!, $str: String!, $spesialisasi: String!, $noHp: String!
+                    ) {
+                        createPerawat(
+                            idNakes: $idNakes, nip: $nip, namaPerawat: $namaPerawat,
+                            status: $status, str: $str, spesialisasi: $spesialisasi, noHp: $noHp
+                        ) {
+                            id_perawat
+                            nip
+                            namaPerawat
+                            status
+                            str
+                            spesialisasi
+                            noHp
+                        }
+                    }
+                `;
+                variables = {
+                    idNakes: parseInt(idNakes),
+                    nip,
+                    namaPerawat,
+                    status,
+                    str,
+                    spesialisasi,
+                    noHp
+                };
+            }
+
+            console.log(`Submitting Perawat mutation ${mutationName} with variables:`, variables); 
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: mutation, variables: variables }),
+                });
+
+                const result = await response.json();
+                console.log("Perawat mutation response:", result); 
+
+                if (result.errors) {
+                    alert('Error: ' + result.errors[0].message);
+                    console.error("GraphQL Perawat Mutation Error:", result.errors);
+                } else if (result.data && result.data[mutationName]) {
+                    alert(`Data Perawat ${mutationName === 'createPerawat' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    hideForm('perawatForm');
+                    fetchData('allPerawat');
+                } else {
+                    alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    console.log("Perawat Mutation success with no specific return data or unexpected structure:", result);
+                    hideForm('perawatForm');
+                    fetchData('allPerawat');
+                }
+            } catch (error) {
+                alert('Fetch error: ' + error.message);
+                console.error("Fetch Error during Perawat mutation:", error);
+            }
+        }
+
+        
+        function editEntity(entity, encodedData) {
+            console.log("editEntity called. Entity:", entity, "Encoded Data:", encodedData); 
+            try {
+                const data = JSON.parse(atob(encodedData)); 
+                console.log("Decoded data for edit:", data); 
 
                 if (entity === 'allTenagaKesehatan') {
                     showForm('tenagaKesehatanForm', 'edit', data);
                 } else if (entity === 'allPasien') {
                     showForm('pasienForm', 'edit', data);
+                } else if (entity === 'allDokter') {
+                    showForm('dokterForm', 'edit', data);
+                } else if (entity === 'allPerawat') {
+                    showForm('perawatForm', 'edit', data);
                 }
-                // TODO: Tambahkan else if untuk Dokter dan Perawat nanti
             } catch (e) {
                 console.error("Error decoding or parsing data in editEntity:", e);
                 alert("Failed to load data for editing. Check console for details.");
             }
         }
 
-        // Fungsi untuk menghapus entitas
+        
         async function deleteEntity(entity, id) {
             if (!confirm(`Apakah Anda yakin ingin menghapus data ${entity.replace('all', '')} dengan ID ${id}?`)) {
                 return;
@@ -565,16 +870,32 @@
                         }
                     }
                 `;
+            } else if (entity === 'allDokter') {
+                mutationName = 'deleteDokter';
+                mutation = `
+                    mutation DeleteDokter($${idField}: Int!) {
+                        deleteDokter(${idField}: $${idField}) {
+                            ${idField}
+                        }
+                    }
+                `;
+            } else if (entity === 'allPerawat') {
+                mutationName = 'deletePerawat';
+                mutation = `
+                    mutation DeletePerawat($${idField}: Int!) {
+                        deletePerawat(${idField}: $${idField}) {
+                            ${idField}
+                        }
+                    }
+                `;
             }
-            // TODO: Tambahkan else if untuk Dokter dan Perawat nanti
 
             if (!mutation) {
                 alert('Operasi delete tidak didukung untuk entitas ini.');
                 return;
             }
 
-            console.log(`Submitting delete mutation ${mutationName} for ID: ${id}`); // DEBUG
-
+            console.log(`Submitting delete mutation ${mutationName} for ID: ${id}`); 
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -585,14 +906,14 @@
                 });
 
                 const result = await response.json();
-                console.log("Delete mutation response:", result); // DEBUG
+                console.log("Delete mutation response:", result); 
 
                 if (result.errors) {
                     alert('Error: ' + result.errors[0].message);
                     console.error("GraphQL Delete Error:", result.errors);
                 } else if (result.data && result.data[mutationName]) {
                     alert('Dihapus berhasil!');
-                    fetchData(entity); // Refresh data setelah operasi
+                    fetchData(entity); 
                 } else {
                     alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
                     console.log("Delete success with no specific return data or unexpected structure:", result);
@@ -604,21 +925,25 @@
             }
         }
 
-        // Fungsi untuk menampilkan detail (menggunakan modal yang sudah ada)
+        
         function showDetail(entity, encodedData) {
-            console.log("showDetail called. Entity:", entity, "Encoded Data:", encodedData); // DEBUG
+            console.log("showDetail called. Entity:", entity, "Encoded Data:", encodedData); 
             try {
-                const data = JSON.parse(atob(encodedData)); // Decode Base64 kembali ke JSON
-                console.log("Decoded data for detail:", data); // DEBUG
+                const data = JSON.parse(atob(encodedData)); 
+                console.log("Decoded data for detail:", data); 
 
                 let detailHtml = `<h3>Detail ${entity.replace('all', '')}</h3>`;
                 detailHtml += `<ul>`;
                 for (const key in data) {
-                    // Penanganan khusus untuk Tanggal Lahir agar tampil lebih user-friendly
+                 
                     if (key === 'tanggal_lahir' && data[key]) {
                         const date = new Date(data[key]);
                         detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${date.toLocaleDateString('id-ID')}</li>`;
-                    } else {
+                    } else if (key === 'jenis_kelamin' && data[key]) {
+                        
+                        detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${data[key] === 'L' ? 'Laki-laki' : (data[key] === 'P' ? 'Perempuan' : data[key])}</li>`;
+                    }
+                    else {
                         detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${data[key] !== null ? data[key] : 'N/A'}</li>`;
                     }
                 }
@@ -640,14 +965,14 @@
             document.getElementById('modal-overlay').style.display = 'none';
         }
 
-        // Helper untuk mendapatkan nama field ID yang benar berdasarkan entitas
+        
         function idFieldName(entity) {
             switch (entity) {
                 case 'allTenagaKesehatan': return 'id_nakes';
                 case 'allPasien': return 'id_pasien';
                 case 'allDokter': return 'id_dokter';
                 case 'allPerawat': return 'id_perawat';
-                default: return 'id'; // Default, sesuaikan jika ada ID generik
+                default: return 'id'; 
             }
         }
     </script>

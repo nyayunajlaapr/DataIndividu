@@ -61,12 +61,12 @@ class Pasien
             $stmt = $this->pdo->prepare($sql);
 
             $stmt->bindValue(':nik', $data['nik'] ?? null);
-            $stmt->bindValue(':nama_lengkap', $data['namaLengkap'] ?? null); // GraphQL uses camelCase, DB uses snake_case
-            $stmt->bindValue(':jenis_kelamin', $data['jenisKelamin'] ?? null);
-            $stmt->bindValue(':tanggal_lahir', $data['tanggalLahir'] ?? null);
-            $stmt->bindValue(':no_bpjs', $data['noBpjs'] ?? null);
+            $stmt->bindValue(':nama_lengkap', $data['nama_lengkap'] ?? null);
+            $stmt->bindValue(':jenis_kelamin', $data['jenis_kelamin'] ?? null);
+            $stmt->bindValue(':tanggal_lahir', $data['tanggal_lahir'] ?? null);
+            $stmt->bindValue(':no_bpjs', $data['no_bpjs'] ?? null);
             $stmt->bindValue(':pekerjaan', $data['pekerjaan'] ?? null);
-            $stmt->bindValue(':status_pernikahan', $data['statusPernikahan'] ?? null);
+            $stmt->bindValue(':status_pernikahan', $data['status_pernikahan'] ?? null);
 
             $executeResult = $stmt->execute();
 
@@ -80,11 +80,11 @@ class Pasien
 
         } catch (PDOException $e) {
             error_log("Error creating Pasien: " . $e->getMessage());
-            var_dump("PDOException caught in createPasien: " . $e->getMessage());
+          
             throw new \Exception("Database Error Pasien: Gagal membuat pasien baru: " . $e->getMessage());
         } catch (\Exception $e) {
              error_log("General Error creating Pasien: " . $e->getMessage());
-             var_dump("General Exception caught in createPasien: " . $e->getMessage());
+
              throw new \Exception("General Error Pasien: Gagal membuat pasien baru: " . $e->getMessage());
         }
     }
@@ -104,12 +104,12 @@ class Pasien
             // Mapping GraphQL camelCase ke kolom database snake_case
             $fieldMap = [
                 'nik' => 'nik',
-                'namaLengkap' => 'nama_lengkap',
-                'jenisKelamin' => 'jenis_kelamin',
-                'tanggalLahir' => 'tanggal_lahir',
-                'noBpjs' => 'no_bpjs',
+                'nama_lengkap' => 'nama_lengkap',
+                'jenis_kelamin' => 'jenis_kelamin',
+                'tanggal_lahir' => 'tanggal_lahir',
+                'no_bpjs' => 'no_bpjs',
                 'pekerjaan' => 'pekerjaan',
-                'statusPernikahan' => 'status_pernikahan',
+                'status_pernikahan' => 'status_pernikahan',
             ];
 
             foreach ($data as $key => $value) {
@@ -139,11 +139,11 @@ class Pasien
 
         } catch (PDOException $e) {
             error_log("Error updating Pasien: " . $e->getMessage());
-            var_dump("PDOException caught in updatePasien: " . $e->getMessage());
+
             throw new \Exception("Database Error Pasien: Gagal memperbarui data pasien: " . $e->getMessage());
         } catch (\Exception $e) {
             error_log("General Error updating Pasien: " . $e->getMessage());
-            var_dump("General Exception caught in updatePasien: " . $e->getMessage());
+           
             throw new \Exception("General Error Pasien: Gagal memperbarui data pasien: " . $e->getMessage());
         }
     }
@@ -162,11 +162,11 @@ class Pasien
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             error_log("Error deleting Pasien: " . $e->getMessage());
-            var_dump("PDOException caught in deletePasien: " . $e->getMessage());
+           
             throw new \Exception("Database Error Pasien: Gagal menghapus pasien: " . $e->getMessage());
         } catch (\Exception $e) {
             error_log("General Error deleting Pasien: " . $e->getMessage());
-            var_dump("General Exception caught in deletePasien: " . $e->getMessage());
+            
             throw new \Exception("General Error Pasien: Gagal menghapus pasien: " . $e->getMessage());
         }
     }
