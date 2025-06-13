@@ -209,7 +209,7 @@
 
             if (!formTitleElement) {
                 console.error(`Form title element not found for formId: ${formId}`);
-                return; /
+                return; 
             }
 
             form.style.display = 'block';
@@ -227,7 +227,7 @@
                     document.getElementById('pasien_id_pasien').value = '';
                     document.getElementById('pasien_nik').value = '';
                     document.getElementById('pasien_nama_lengkap').value = '';
-                    document.getElementById('pasien_jenis_kelamin').value = ''; // Set to empty for "Pilih"
+                    document.getElementById('pasien_jenis_kelamin').value = ''; 
                     document.getElementById('pasien_tanggal_lahir').value = '';
                     document.getElementById('pasien_no_bpjs').value = '';
                     document.getElementById('pasien_pekerjaan').value = '';
@@ -454,9 +454,9 @@
             containerElement.innerHTML = tableHtml;
         }
 
-        // --- Fungsi untuk Mutasi (Tambah, Edit, Delete) ---
+    
 
-        // Fungsi submit untuk Tenaga Kesehatan
+       
         async function submitTenagaKesehatanForm() {
             const id_nakes_val = document.getElementById('tk_id_nakes').value;
             const nip = document.getElementById('tk_nip').value;
@@ -500,7 +500,8 @@
                 variables = { nip, role, str };
             }
 
-            console.log(`Submitting mutation ${mutationName} with variables:`, variables); // DEBUG
+            console.log(`Submitting mutation ${mutationName} with variables:`, variables); 
+            console.log("QUERY YANG DIKIRIM:", mutation);
 
             try {
                 const response = await fetch(API_URL, {
@@ -510,7 +511,7 @@
                 });
 
                 const result = await response.json();
-                console.log("Mutation response:", result); // DEBUG
+                console.log("Mutation response:", result); 
 
                 if (result.errors) {
                     alert('Error: ' + result.errors[0].message);
@@ -518,7 +519,7 @@
                 } else if (result.data && result.data[mutationName]) {
                     alert(`Data Tenaga Kesehatan ${mutationName === 'createTenagaKesehatan' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
                     hideForm('tenagaKesehatanForm');
-                    fetchData('allTenagaKesehatan'); // Refresh data setelah operasi
+                    fetchData('allTenagaKesehatan'); 
                 } else {
                     alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
                     console.log("Mutation success with no specific return data or unexpected structure:", result);
@@ -706,9 +707,9 @@
             }
         }
 
-        // Fungsi submit untuk Perawat
+        
         async function submitPerawatForm() {
-            const id_perawat_val = document.getElementById('perawat_id_perawat').value;
+            const id_perawat = document.getElementById('perawat_id_perawat').value;
             const idNakes = document.getElementById('perawat_id_nakes').value;
             const nip = document.getElementById('perawat_nip').value;
             const namaPerawat = document.getElementById('perawat_nama_perawat').value;
@@ -726,7 +727,7 @@
             let variables = {};
             let mutationName = '';
 
-            if (id_perawat_val) {
+            if (id_perawat) {
                 mutationName = 'updatePerawat';
                 mutation = `
                     mutation UpdatePerawat(
@@ -739,16 +740,16 @@
                         ) {
                             id_perawat
                             nip
-                            namaPerawat
+                            nama_perawat
                             status
                             str
                             spesialisasi
-                            noHp
+                            no_hp
                         }
                     }
                 `;
                 variables = {
-                    id_perawat: parseInt(id_perawat_val),
+                    id_perawat: parseInt(id_perawat),
                     idNakes: parseInt(idNakes),
                     nip,
                     namaPerawat,
@@ -770,11 +771,11 @@
                         ) {
                             id_perawat
                             nip
-                            namaPerawat
+                            nama_perawat
                             status
                             str
                             spesialisasi
-                            noHp
+                            no_hp
                         }
                     }
                 `;
@@ -790,6 +791,7 @@
             }
 
             console.log(`Submitting Perawat mutation ${mutationName} with variables:`, variables); 
+            console.log("QUERY YANG DIKIRIM:", mutation);
 
             try {
                 const response = await fetch(API_URL, {

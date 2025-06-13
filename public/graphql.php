@@ -299,17 +299,17 @@ $mutationType = new ObjectType([
             },
         ],
 
-        // Perawat Mutations
+        
         'createPerawat' => [
             'type' => $perawatType,
             'args' => [
-                'idNakes' => Type::int(), // idNakes (camelCase)
+                'idNakes' => Type::int(), 
                 'nip' => Type::string(),
-                'namaPerawat' => Type::nonNull(Type::string()), // namaPerawat (camelCase)
+                'namaPerawat' => Type::nonNull(Type::string()), 
                 'status' => Type::string(),
                 'str' => Type::string(),
                 'spesialisasi' => Type::string(),
-                'noHp' => Type::string(), // noHp (camelCase)
+                'noHp' => Type::string(), 
             ],
             'resolve' => function ($rootValue, $args) use ($perawatModel) {
                 return $perawatModel->createPerawat($args);
