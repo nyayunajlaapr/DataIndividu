@@ -1,4 +1,5 @@
 <?php
+// src/Models/Perawat.php
 
 namespace Iae\LayananDataIndividu\Models;
 
@@ -8,129 +9,167 @@ use PDOException;
 class Perawat
 {
     private $pdo;
-    private $tableName = 'tenaga_kesehatan'; // Perawat menggunakan tabel tenaga_kesehatan
-    private $roleValue = 'Perawat'; // Nilai role spesifik untuk Perawat
 
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
     }
 
-    public function getAllPerawat(): array
+    /**
+     * Mengambil satu data perawat berdasarkan ID.
+     * @param int $id ID Perawat
+     * @return array|false
+     */
+    public function getPerawatById($id)
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT * FROM {$this->tableName} WHERE role = :role ORDER BY id_nakes DESC");
-            $stmt->bindParam(':role', $this->roleValue);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error fetching all nurses: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    public function getPerawatById(int $id)
-    {
-        try {
-            $stmt = $this->pdo->prepare("SELECT * FROM {$this->tableName} WHERE id_nakes = :id AND role = :role");
+            $stmt = $this->pdo->prepare("SELECT id_perawat, id_nakes, nip, nama_perawat, status, str, spesialisasi, no_hp FROM perawat WHERE id_perawat = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->bindParam(':role', $this->roleValue);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Error fetching nurse by ID: " . $e->getMessage());
-            return false;
+            error_log("Error fetching Perawat by ID: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil data perawat.");
         }
     }
 
+    /**
+     * Mengambil semua data perawat.
+     * @return array
+     */
+    public function getAllPerawat()
+    {
+        try {
+            $stmt = $this->pdo->query("SELECT id_perawat, id_nakes, nip, nama_perawat, status, str, spesialisasi, no_hp FROM perawat ORDER BY id_perawat ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching all Perawat: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil semua data perawat.");
+        }
+    }
+
+    /**
+     * Membuat data perawat baru.
+     * @param array $data Data perawat yang akan disimpan.
+     * @return array|null Data perawat yang baru dibuat, atau null jika gagal.
+     */
     public function createPerawat(array $data)
     {
-        // Secara otomatis set role menjadi 'Perawat'
-        $data['role'] = $this->roleValue;
-
-        $sql = "INSERT INTO {$this->tableName} (
-            nip, nama_lengkap, jenis_kelamin, tanggal_lahir, no_hp,
-            no_bpjs, alamat, status_pernikahan, pekerjaan, role
-        ) VALUES (
-            :nip, :nama_lengkap, :jenis_kelamin, :tanggal_lahir, :no_hp,
-            :no_bpjs, :alamat, :status_pernikahan, :pekerjaan, :role
-        )";
-
         try {
+            $sql = "INSERT INTO perawat (id_nakes, nip, nama_perawat, status, str, spesialisasi, no_hp)
+                    VALUES (:id_nakes, :nip, :nama_perawat, :status, :str, :spesialisasi, :no_hp)";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->bindParam(':nip', $data['nip']);
-            $stmt->bindParam(':nama_lengkap', $data['nama_lengkap']);
-            $stmt->bindParam(':jenis_kelamin', $data['jenis_kelamin']);
-            $stmt->bindParam(':tanggal_lahir', $data['tanggal_lahir']);
-            $stmt->bindParam(':no_hp', $data['no_hp']);
-            $stmt->bindParam(':no_bpjs', $data['no_bpjs']);
-            $stmt->bindParam(':alamat', $data['alamat']);
-            $stmt->bindParam(':status_pernikahan', $data['status_pernikahan']);
-            $stmt->bindParam(':pekerjaan', $data['pekerjaan']);
-            $stmt->bindParam(':role', $data['role']);
-            $stmt->execute();
 
-            $lastId = $this->pdo->lastInsertId('tenaga_kesehatan_id_nakes_seq'); // Sequence tetap dari tabel tenaga_kesehatan
-            return $this->getPerawatById((int)$lastId);
+            $stmt->bindValue(':id_nakes', $data['idNakes'] ?? null, PDO::PARAM_INT);
+            $stmt->bindValue(':nip', $data['nip'] ?? null);
+            $stmt->bindValue(':nama_perawat', $data['namaPerawat'] ?? null);
+            $stmt->bindValue(':status', $data['status'] ?? null);
+            $stmt->bindValue(':str', $data['str'] ?? null);
+            $stmt->bindValue(':spesialisasi', $data['spesialisasi'] ?? null);
+            $stmt->bindValue(':no_hp', $data['noHp'] ?? null);
+
+            $executeResult = $stmt->execute();
+
+            if ($executeResult) {
+                $lastId = $this->pdo->lastInsertId();
+                if ($lastId) {
+                    return $this->getPerawatById((int)$lastId);
+                }
+            }
+            return null;
+
         } catch (PDOException $e) {
-            error_log("Error creating nurse: " . $e->getMessage());
-            return false;
+            error_log("Error creating Perawat: " . $e->getMessage());
+            var_dump("PDOException caught in createPerawat: " . $e->getMessage());
+            throw new \Exception("Database Error Perawat: Gagal membuat perawat baru: " . $e->getMessage());
+        } catch (\Exception $e) {
+             error_log("General Error creating Perawat: " . $e->getMessage());
+             var_dump("General Exception caught in createPerawat: " . $e->getMessage());
+             throw new \Exception("General Error Perawat: Gagal membuat perawat baru: " . $e->getMessage());
         }
     }
 
-    public function updatePerawat(int $id, array $data)
+    /**
+     * Memperbarui data perawat yang sudah ada.
+     * @param int $id ID Perawat
+     * @param array $data Data perawat yang akan diperbarui.
+     * @return array|null Data perawat yang diperbarui, atau null jika gagal.
+     */
+    public function updatePerawat($id, array $data)
     {
-        // Pastikan role tidak diubah menjadi non-Perawat dari endpoint ini
-        $data['role'] = $this->roleValue;
-
-        $sql = "UPDATE {$this->tableName} SET
-            nip = :nip,
-            nama_lengkap = :nama_lengkap,
-            jenis_kelamin = :jenis_kelamin,
-            tanggal_lahir = :tanggal_lahir,
-            no_hp = :no_hp,
-            no_bpjs = :no_bpjs,
-            alamat = :alamat,
-            status_pernikahan = :status_pernikahan,
-            pekerjaan = :pekerjaan,
-            role = :role
-            WHERE id_nakes = :id_nakes AND role = :current_role"; // Tambah filter role
-
         try {
+            $setClauses = [];
+            $bindValues = [];
+
+            // Mapping GraphQL camelCase ke kolom database snake_case
+            $fieldMap = [
+                'idNakes' => 'id_nakes',
+                'nip' => 'nip',
+                'namaPerawat' => 'nama_perawat',
+                'status' => 'status',
+                'str' => 'str',
+                'spesialisasi' => 'spesialisasi',
+                'noHp' => 'no_hp',
+            ];
+
+            foreach ($data as $key => $value) {
+                if (isset($fieldMap[$key])) {
+                    $dbColumn = $fieldMap[$key];
+                    $setClauses[] = "$dbColumn = :$key";
+                    $bindValues[":$key"] = $value;
+                }
+            }
+
+            if (empty($setClauses)) {
+                return $this->getPerawatById($id); // Tidak ada yang diupdate
+            }
+
+            $sql = "UPDATE perawat SET " . implode(', ', $setClauses) . " WHERE id_perawat = :id";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->bindParam(':nip', $data['nip']);
-            $stmt->bindParam(':nama_lengkap', $data['nama_lengkap']);
-            $stmt->bindParam(':jenis_kelamin', $data['jenis_kelamin']);
-            $stmt->bindParam(':tanggal_lahir', $data['tanggal_lahir']);
-            $stmt->bindParam(':no_hp', $data['no_hp']);
-            $stmt->bindParam(':no_bpjs', $data['no_bpjs']);
-            $stmt->bindParam(':alamat', $data['alamat']);
-            $stmt->bindParam(':status_pernikahan', $data['status_pernikahan']);
-            $stmt->bindParam(':pekerjaan', $data['pekerjaan']);
-            $stmt->bindParam(':role', $data['role']);
-            $stmt->bindParam(':id_nakes', $id, PDO::PARAM_INT);
-            $stmt->bindParam(':current_role', $this->roleValue); // Pastikan hanya mengupdate perawat
-            $stmt->execute();
 
-            return $this->getPerawatById($id);
-        } catch (PDOException $e) {
-            error_log("Error updating nurse: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    public function deletePerawat(int $id): bool
-    {
-        try {
-            // Hapus hanya jika role-nya 'Perawat'
-            $stmt = $this->pdo->prepare("DELETE FROM {$this->tableName} WHERE id_nakes = :id AND role = :role");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->bindParam(':role', $this->roleValue);
+            foreach ($bindValues as $param => $value) {
+                if ($param === ':idNakes' && ($value === null || is_int($value))) {
+                    $stmt->bindValue($param, $value, PDO::PARAM_INT);
+                } else {
+                    $stmt->bindValue($param, $value);
+                }
+            }
+
+            $stmt->execute();
+            return $this->getPerawatById($id);
+
+        } catch (PDOException $e) {
+            error_log("Error updating Perawat: " . $e->getMessage());
+            var_dump("PDOException caught in updatePerawat: " . $e->getMessage());
+            throw new \Exception("Database Error Perawat: Gagal memperbarui data perawat: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error updating Perawat: " . $e->getMessage());
+            var_dump("General Exception caught in updatePerawat: " . $e->getMessage());
+            throw new \Exception("General Error Perawat: Gagal memperbarui data perawat: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Menghapus data perawat berdasarkan ID.
+     * @param int $id ID Perawat
+     * @return bool True jika berhasil dihapus, false jika tidak.
+     */
+    public function deletePerawat($id)
+    {
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM perawat WHERE id_perawat = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error deleting nurse: " . $e->getMessage());
-            return false;
+            error_log("Error deleting Perawat: " . $e->getMessage());
+            var_dump("PDOException caught in deletePerawat: " . $e->getMessage());
+            throw new \Exception("Database Error Perawat: Gagal menghapus perawat: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error deleting Perawat: " . $e->getMessage());
+            var_dump("General Exception caught in deletePerawat: " . $e->getMessage());
+            throw new \Exception("General Error Perawat: Gagal menghapus perawat: " . $e->getMessage());
         }
     }
 }

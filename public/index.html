@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Layanan Data Individu</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #0056b3; }
+        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { background-color: #007bff; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-right: 5px; margin-bottom: 5px; }
+        button:hover { background-color: #0056b3; }
+        .data-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .action-buttons button { margin: 0 2px; padding: 5px 8px; font-size: 12px; }
+        .form-section { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; }
+        .form-section label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-section input[type="text"], .form-section input[type="number"], .form-section input[type="date"], .form-section select {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-section button { margin-top: 10px; }
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 999;
+        }
+        #detail-container {
+            display:none;
+            position:fixed;
+            top:10%;
+            left:50%;
+            transform:translate(-50%, 0);
+            background:white;
+            padding:20px;
+            border-radius:8px;
+            box-shadow:0 4px 8px rgba(0,0,0,0.2);
+            z-index:1000;
+            min-width:300px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #detail-container h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        #detail-container ul {
+            list-style: none;
+            padding: 0;
+        }
+        #detail-container ul li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard Layanan Data Individu</h1>
+        <p>Aplikasi ini menampilkan data dari GraphQL API.</p>
+
+        <hr>
+
+        <h2>Data Tenaga Kesehatan</h2>
+        <button onclick="fetchData('allTenagaKesehatan')">Muat Semua Tenaga Kesehatan</button>
+        <button onclick="showForm('tenagaKesehatanForm', 'add')">Tambah Tenaga Kesehatan Baru</button>
+        <div id="tenagaKesehatanData" class="data-section"></div>
+
+        <div id="tenagaKesehatanForm" class="form-section" style="display: none;">
+            <h3><span id="tk_formTitle">Tambah</span> Tenaga Kesehatan</h3>
+            <input type="hidden" id="tk_id_nakes">
+            <label for="tk_nip">NIP:</label>
+            <input type="text" id="tk_nip" required>
+            <label for="tk_role">Role:</label>
+            <input type="text" id="tk_role" required>
+            <label for="tk_str">STR:</label>
+            <input type="text" id="tk_str" required>
+            <button onclick="submitTenagaKesehatanForm()">Simpan</button>
+            <button onclick="hideForm('tenagaKesehatanForm')">Batal</button>
+        </div>
+
+        <hr>
+
+        <h2>Data Pasien</h2>
+        <button onclick="fetchData('allPasien')">Muat Semua Pasien</button>
+        <button onclick="showForm('pasienForm', 'add')">Tambah Pasien Baru</button>
+        <div id="pasienData" class="data-section"></div>
+
+        <div id="pasienForm" class="form-section" style="display: none;">
+            <h3><span id="pasien_formTitle">Tambah</span> Pasien</h3>
+            <input type="hidden" id="pasien_id_pasien">
+            <label for="pasien_nik">NIK:</label>
+            <input type="text" id="pasien_nik" required>
+            <label for="pasien_nama_lengkap">Nama Lengkap:</label>
+            <input type="text" id="pasien_nama_lengkap" required>
+            <label for="pasien_jenis_kelamin">Jenis Kelamin:</label>
+            <select id="pasien_jenis_kelamin" required>
+                <option value="">Pilih</option>
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+            </select>
+            <label for="pasien_tanggal_lahir">Tanggal Lahir:</label>
+            <input type="date" id="pasien_tanggal_lahir" required>
+            <label for="pasien_no_bpjs">No BPJS (Opsional):</label>
+            <input type="text" id="pasien_no_bpjs">
+            <label for="pasien_pekerjaan">Pekerjaan:</label>
+            <input type="text" id="pasien_pekerjaan" required>
+            <label for="pasien_status_pernikahan">Status Pernikahan:</label>
+            <select id="pasien_status_pernikahan" required>
+                <option value="">Pilih</option>
+                <option value="Belum Menikah">Belum Menikah</option>
+                <option value="Menikah">Menikah</option>
+                <option value="Cerai">Cerai</option>
+            </select>
+            <button onclick="submitPasienForm()">Simpan</button>
+            <button onclick="hideForm('pasienForm')">Batal</button>
+        </div>
+
+        <hr>
+
+        <h2>Data Dokter</h2>
+        <button onclick="fetchData('allDokter')">Muat Semua Dokter</button>
+        <div id="dokterData" class="data-section"></div>
+
+        <hr>
+
+        <h2>Data Perawat</h2>
+        <button onclick="fetchData('allPerawat')">Muat Semua Perawat</button>
+        <div id="perawatData" class="data-section"></div>
+    </div>
+
+    <div id="detail-container"></div>
+    <div id="modal-overlay" onclick="hideDetail()"></div>
+
+    <script>
+        const API_URL = 'http://localhost:8000'; // Ganti jika endpoint berbeda
+
+        // Fungsi untuk menampilkan/menyembunyikan form
+        function showForm(formId, mode = 'add', data = {}) {
+            const form = document.getElementById(formId);
+            let formTitleElement;
+
+            // Memilih elemen judul berdasarkan formId
+            if (formId === 'tenagaKesehatanForm') {
+                formTitleElement = document.getElementById('tk_formTitle');
+            } else if (formId === 'pasienForm') {
+                formTitleElement = document.getElementById('pasien_formTitle');
+            }
+            // TODO: Tambahkan else if untuk Dokter dan Perawat nanti
+
+            if (!formTitleElement) {
+                console.error(`Form title element not found for formId: ${formId}`);
+                return; // Hentikan eksekusi jika elemen judul tidak ditemukan
+            }
+
+            form.style.display = 'block';
+            console.log(`showForm called for ${formId} in ${mode} mode with data:`, data); // DEBUG
+
+            if (mode === 'add') {
+                formTitleElement.textContent = 'Tambah';
+                // Reset form fields berdasarkan formId
+                if (formId === 'tenagaKesehatanForm') {
+                    document.getElementById('tk_id_nakes').value = '';
+                    document.getElementById('tk_nip').value = '';
+                    document.getElementById('tk_role').value = '';
+                    document.getElementById('tk_str').value = '';
+                } else if (formId === 'pasienForm') {
+                    document.getElementById('pasien_id_pasien').value = '';
+                    document.getElementById('pasien_nik').value = '';
+                    document.getElementById('pasien_nama_lengkap').value = '';
+                    document.getElementById('pasien_jenis_kelamin').value = '';
+                    document.getElementById('pasien_tanggal_lahir').value = '';
+                    document.getElementById('pasien_no_bpjs').value = '';
+                    document.getElementById('pasien_pekerjaan').value = '';
+                    document.getElementById('pasien_status_pernikahan').value = '';
+                }
+                // TODO: Tambahkan reset untuk Dokter dan Perawat
+            } else if (mode === 'edit') {
+                formTitleElement.textContent = 'Edit';
+                // Isi form fields dengan data yang ada berdasarkan formId
+                if (formId === 'tenagaKesehatanForm') {
+                    document.getElementById('tk_id_nakes').value = data.id_nakes || '';
+                    document.getElementById('tk_nip').value = data.nip || '';
+                    document.getElementById('tk_role').value = data.role || '';
+                    document.getElementById('tk_str').value = data.str || '';
+                    console.log("Tenaga Kesehatan form fields populated for edit:", {
+                        id_nakes: document.getElementById('tk_id_nakes').value,
+                        nip: document.getElementById('tk_nip').value,
+                        role: document.getElementById('tk_role').value,
+                        str: document.getElementById('tk_str').value
+                    }); // DEBUG
+                } else if (formId === 'pasienForm') {
+                    document.getElementById('pasien_id_pasien').value = data.id_pasien || '';
+                    document.getElementById('pasien_nik').value = data.nik || '';
+                    document.getElementById('pasien_nama_lengkap').value = data.nama_lengkap || '';
+                    document.getElementById('pasien_jenis_kelamin').value = data.jenis_kelamin || '';
+                    // Tanggal lahir perlu diformat ulang jika dari DB dalam format berbeda (misal YYYY-MM-DD HH:MM:SS)
+                    document.getElementById('pasien_tanggal_lahir').value = data.tanggal_lahir ? data.tanggal_lahir.split('T')[0] : ''; // Ambil hanya YYYY-MM-DD
+                    document.getElementById('pasien_no_bpjs').value = data.no_bpjs || '';
+                    document.getElementById('pasien_pekerjaan').value = data.pekerjaan || '';
+                    document.getElementById('pasien_status_pernikahan').value = data.status_pernikahan || '';
+                    console.log("Pasien form fields populated for edit:", {
+                        id_pasien: document.getElementById('pasien_id_pasien').value,
+                        nik: document.getElementById('pasien_nik').value,
+                        nama_lengkap: document.getElementById('pasien_nama_lengkap').value,
+                        jenis_kelamin: document.getElementById('pasien_jenis_kelamin').value,
+                        tanggal_lahir: document.getElementById('pasien_tanggal_lahir').value,
+                        no_bpjs: document.getElementById('pasien_no_bpjs').value,
+                        pekerjaan: document.getElementById('pasien_pekerjaan').value,
+                        status_pernikahan: document.getElementById('pasien_status_pernikahan').value
+                    }); // DEBUG
+                }
+                // TODO: Tambahkan isi form untuk Dokter dan Perawat
+            }
+        }
+
+        function hideForm(formId) {
+            document.getElementById(formId).style.display = 'none';
+        }
+
+        // Fungsi utama untuk mengambil data (query)
+        async function fetchData(entity) {
+            let query = '';
+            let targetElementId = '';
+            let fields = '';
+
+            switch (entity) {
+                case 'allTenagaKesehatan':
+                    fields = `id_nakes nip role str`;
+                    targetElementId = 'tenagaKesehatanData';
+                    break;
+                case 'allPasien':
+                    fields = `id_pasien nik nama_lengkap jenis_kelamin tanggal_lahir no_bpjs pekerjaan status_pernikahan`;
+                    targetElementId = 'pasienData';
+                    break;
+                case 'allDokter':
+                    fields = `id_dokter id_nakes nip nama_dokter status str spesialisasi no_hp`;
+                    targetElementId = 'dokterData';
+                    break;
+                case 'allPerawat':
+                    fields = `id_perawat id_nakes nip nama_perawat status str spesialisasi no_hp`;
+                    targetElementId = 'perawatData';
+                    break;
+                default:
+                    console.error('Entity not recognized');
+                    return;
+            }
+
+            query = `query { ${entity} { ${fields} } }`;
+            console.log("Fetching data with query:", query); // DEBUG
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query }),
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const text = await response.text();
+                    const dataContainer = document.getElementById(targetElementId);
+                    dataContainer.innerHTML = `<p style="color: red;">Error: Server response was not JSON. Raw response: <pre>${text}</pre></p>`;
+                    console.error("Server responded with non-JSON content:", text);
+                    return;
+                }
+
+                const result = await response.json();
+                const dataContainer = document.getElementById(targetElementId);
+
+                console.log("GraphQL response for", entity, ":", result); // DEBUG
+
+                if (result.errors) {
+                    dataContainer.innerHTML = `<p style="color: red;">Error: ${result.errors[0].message}</p>`;
+                    console.error("GraphQL Errors:", result.errors);
+                } else if (result.data) {
+                    const data = result.data[entity];
+                    if (data && data.length > 0) {
+                        console.log("Data received for rendering:", data); // DEBUG
+                        renderTable(data, dataContainer, entity); // Panggil fungsi renderTable
+                    } else {
+                        dataContainer.innerHTML = `<p>Tidak ada data ${entity.replace('all', '')} ditemukan.</p>`;
+                    }
+                } else {
+                    dataContainer.innerHTML = `<p>Tidak ada data yang diterima dari API.</p>`;
+                }
+            } catch (error) {
+                const dataContainer = document.getElementById(targetElementId);
+                dataContainer.innerHTML = `<p style="color: red;">Fetch error: ${error.message}</p>`;
+                console.error("Fetch Error:", error);
+            }
+        }
+
+        // Fungsi untuk merender tabel dengan tombol aksi
+        function renderTable(data, containerElement, entity) {
+            if (!data || data.length === 0) {
+                containerElement.innerHTML = `<p>Tidak ada data untuk ditampilkan.</p>`;
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+            let tableHtml = '<table><thead><tr>';
+            headers.forEach(header => {
+                tableHtml += `<th>${header.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</th>`;
+            });
+            tableHtml += `<th>Aksi</th></tr></thead><tbody>`;
+
+            data.forEach(row => {
+                tableHtml += '<tr>';
+                headers.forEach(header => {
+                    // Penanganan khusus untuk tanggal agar tampil lebih rapi
+                    if (header.includes('tanggal_lahir') && row[header]) {
+                        const date = new Date(row[header]);
+                        tableHtml += `<td>${date.toLocaleDateString('id-ID')}</td>`; // Format tanggal sesuai lokal Indonesia
+                    } else {
+                        tableHtml += `<td>${row[header] !== null ? row[header] : 'N/A'}</td>`;
+                    }
+                });
+                tableHtml += `<td class="action-buttons">`;
+                
+                const encodedRowData = btoa(JSON.stringify(row));
+                console.log("Row to encode for", entity, ":", row, "Encoded:", encodedRowData); // DEBUG
+
+                tableHtml += `<button onclick="editEntity('${entity}', '${encodedRowData}')">Edit</button>`;
+                tableHtml += `<button onclick="deleteEntity('${entity}', ${row[idFieldName(entity)]})">Delete</button>`;
+                tableHtml += `<button onclick="showDetail('${entity}', '${encodedRowData}')">Detail</button>`;
+                tableHtml += `</td></tr>`;
+            });
+            tableHtml += '</tbody></table>';
+            containerElement.innerHTML = tableHtml;
+        }
+
+        // --- Fungsi untuk Mutasi (Tambah, Edit, Delete) ---
+
+        // Fungsi submit untuk Tenaga Kesehatan
+        async function submitTenagaKesehatanForm() {
+            const id_nakes_val = document.getElementById('tk_id_nakes').value;
+            const nip = document.getElementById('tk_nip').value;
+            const role = document.getElementById('tk_role').value;
+            const str = document.getElementById('tk_str').value;
+
+            if (!nip || !role || !str) {
+                alert('Semua field (NIP, Role, STR) harus diisi.');
+                return;
+            }
+
+            let mutation = '';
+            let variables = {};
+            let mutationName = '';
+
+            if (id_nakes_val) {
+                mutationName = 'updateTenagaKesehatan';
+                mutation = `
+                    mutation UpdateTenagaKesehatan($id_nakes: Int!, $nip: String, $role: String, $str: String) {
+                        updateTenagaKesehatan(id_nakes: $id_nakes, nip: $nip, role: $role, str: $str) {
+                            id_nakes
+                            nip
+                            role
+                            str
+                        }
+                    }
+                `;
+                variables = { id_nakes: parseInt(id_nakes_val), nip, role, str };
+            } else {
+                mutationName = 'createTenagaKesehatan';
+                mutation = `
+                    mutation CreateTenagaKesehatan($nip: String!, $role: String!, $str: String!) {
+                        createTenagaKesehatan(nip: $nip, role: $role, str: $str) {
+                            id_nakes
+                            nip
+                            role
+                            str
+                        }
+                    }
+                `;
+                variables = { nip, role, str };
+            }
+
+            console.log(`Submitting mutation ${mutationName} with variables:`, variables); // DEBUG
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: mutation, variables: variables }),
+                });
+
+                const result = await response.json();
+                console.log("Mutation response:", result); // DEBUG
+
+                if (result.errors) {
+                    alert('Error: ' + result.errors[0].message);
+                    console.error("GraphQL Mutation Error:", result.errors);
+                } else if (result.data && result.data[mutationName]) {
+                    alert(`Data Tenaga Kesehatan ${mutationName === 'createTenagaKesehatan' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    hideForm('tenagaKesehatanForm');
+                    fetchData('allTenagaKesehatan'); // Refresh data setelah operasi
+                } else {
+                    alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    console.log("Mutation success with no specific return data or unexpected structure:", result);
+                    hideForm('tenagaKesehatanForm');
+                    fetchData('allTenagaKesehatan');
+                }
+            } catch (error) {
+                alert('Fetch error: ' + error.message);
+                console.error("Fetch Error during mutation:", error);
+            }
+        }
+
+        // Fungsi submit untuk Pasien
+        async function submitPasienForm() {
+            const id_pasien_val = document.getElementById('pasien_id_pasien').value;
+            const nik = document.getElementById('pasien_nik').value;
+            const nama_lengkap = document.getElementById('pasien_nama_lengkap').value;
+            const jenis_kelamin = document.getElementById('pasien_jenis_kelamin').value;
+            const tanggal_lahir = document.getElementById('pasien_tanggal_lahir').value;
+            const no_bpjs = document.getElementById('pasien_no_bpjs').value;
+            const pekerjaan = document.getElementById('pasien_pekerjaan').value;
+            const status_pernikahan = document.getElementById('pasien_status_pernikahan').value;
+
+            // Validasi sederhana
+            if (!nik || !nama_lengkap || !jenis_kelamin || !tanggal_lahir || !pekerjaan || !status_pernikahan) {
+                alert('Semua field wajib (NIK, Nama Lengkap, Jenis Kelamin, Tanggal Lahir, Pekerjaan, Status Pernikahan) harus diisi.');
+                return;
+            }
+
+            let mutation = '';
+            let variables = {};
+            let mutationName = '';
+
+            if (id_pasien_val) { // Mode Edit Pasien
+                mutationName = 'updatePasien';
+                mutation = `
+                    mutation UpdatePasien(
+                        $id_pasien: Int!, $nik: String, $nama_lengkap: String,
+                        $jenis_kelamin: String, $tanggal_lahir: String, $no_bpjs: String,
+                        $pekerjaan: String, $status_pernikahan: String
+                    ) {
+                        updatePasien(
+                            id_pasien: $id_pasien, nik: $nik, nama_lengkap: $nama_lengkap,
+                            jenis_kelamin: $jenis_kelamin, tanggal_lahir: $tanggal_lahir, no_bpjs: $no_bpjs,
+                            pekerjaan: $pekerjaan, status_pernikahan: $status_pernikahan
+                        ) {
+                            id_pasien
+                        }
+                    }
+                `;
+                variables = {
+                    id_pasien: parseInt(id_pasien_val), nik, nama_lengkap,
+                    jenis_kelamin, tanggal_lahir, no_bpjs, pekerjaan, status_pernikahan
+                };
+            } else { // Mode Tambah Pasien
+                mutationName = 'createPasien';
+                mutation = `
+                    mutation CreatePasien(
+                        $nik: String!, $nama_lengkap: String!,
+                        $jenis_kelamin: String!, $tanggal_lahir: String!, $no_bpjs: String,
+                        $pekerjaan: String!, $status_pernikahan: String!
+                    ) {
+                        createPasien(
+                            nik: $nik, nama_lengkap: $nama_lengkap,
+                            jenis_kelamin: $jenis_kelamin, tanggal_lahir: $tanggal_lahir, no_bpjs: $no_bpjs,
+                            pekerjaan: $pekerjaan, status_pernikahan: $status_pernikahan
+                        ) {
+                            id_pasien
+                        }
+                    }
+                `;
+                variables = {
+                    nik, nama_lengkap, jenis_kelamin, tanggal_lahir,
+                    no_bpjs: no_bpjs === '' ? null : no_bpjs, // Kirim null jika kosong untuk opsional
+                    pekerjaan, status_pernikahan
+                };
+            }
+
+            console.log(`Submitting Pasien mutation ${mutationName} with variables:`, variables);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: mutation, variables: variables }),
+                });
+
+                const result = await response.json();
+                console.log("Pasien mutation response:", result);
+
+                if (result.errors) {
+                    alert('Error: ' + result.errors[0].message);
+                    console.error("GraphQL Pasien Mutation Error:", result.errors);
+                } else if (result.data && result.data[mutationName]) {
+                    alert(`Data Pasien ${mutationName === 'createPasien' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    hideForm('pasienForm');
+                    fetchData('allPasien'); // Refresh data pasien setelah operasi
+                } else {
+                    alert(`Operasi ${mutationName} Pasien berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    console.log("Pasien Mutation success with no specific return data or unexpected structure:", result);
+                    hideForm('pasienForm');
+                    fetchData('allPasien');
+                }
+            } catch (error) {
+                alert('Fetch error: ' + error.message);
+                console.error("Fetch Error during Pasien mutation:", error);
+            }
+        }
+
+        // Fungsi untuk menginisialisasi form edit
+        function editEntity(entity, encodedData) {
+            console.log("editEntity called. Entity:", entity, "Encoded Data:", encodedData); // DEBUG
+            try {
+                const data = JSON.parse(atob(encodedData)); // Decode Base64 kembali ke JSON
+                console.log("Decoded data for edit:", data); // DEBUG
+
+                if (entity === 'allTenagaKesehatan') {
+                    showForm('tenagaKesehatanForm', 'edit', data);
+                } else if (entity === 'allPasien') {
+                    showForm('pasienForm', 'edit', data);
+                }
+                // TODO: Tambahkan else if untuk Dokter dan Perawat nanti
+            } catch (e) {
+                console.error("Error decoding or parsing data in editEntity:", e);
+                alert("Failed to load data for editing. Check console for details.");
+            }
+        }
+
+        // Fungsi untuk menghapus entitas
+        async function deleteEntity(entity, id) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus data ${entity.replace('all', '')} dengan ID ${id}?`)) {
+                return;
+            }
+
+            let mutation = '';
+            let mutationName = '';
+            let idField = idFieldName(entity);
+
+            if (entity === 'allTenagaKesehatan') {
+                mutationName = 'deleteTenagaKesehatan';
+                mutation = `
+                    mutation DeleteTenagaKesehatan($${idField}: Int!) {
+                        deleteTenagaKesehatan(${idField}: $${idField}) {
+                            ${idField}
+                        }
+                    }
+                `;
+            } else if (entity === 'allPasien') {
+                mutationName = 'deletePasien';
+                mutation = `
+                    mutation DeletePasien($${idField}: Int!) {
+                        deletePasien(${idField}: $${idField}) {
+                            ${idField}
+                        }
+                    }
+                `;
+            }
+            // TODO: Tambahkan else if untuk Dokter dan Perawat nanti
+
+            if (!mutation) {
+                alert('Operasi delete tidak didukung untuk entitas ini.');
+                return;
+            }
+
+            console.log(`Submitting delete mutation ${mutationName} for ID: ${id}`); // DEBUG
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: mutation, variables: { [idField]: id } }),
+                });
+
+                const result = await response.json();
+                console.log("Delete mutation response:", result); // DEBUG
+
+                if (result.errors) {
+                    alert('Error: ' + result.errors[0].message);
+                    console.error("GraphQL Delete Error:", result.errors);
+                } else if (result.data && result.data[mutationName]) {
+                    alert('Dihapus berhasil!');
+                    fetchData(entity); // Refresh data setelah operasi
+                } else {
+                    alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    console.log("Delete success with no specific return data or unexpected structure:", result);
+                    fetchData(entity);
+                }
+            } catch (error) {
+                alert('Fetch error: ' + error.message);
+                console.error("Fetch Error during delete:", error);
+            }
+        }
+
+        // Fungsi untuk menampilkan detail (menggunakan modal yang sudah ada)
+        function showDetail(entity, encodedData) {
+            console.log("showDetail called. Entity:", entity, "Encoded Data:", encodedData); // DEBUG
+            try {
+                const data = JSON.parse(atob(encodedData)); // Decode Base64 kembali ke JSON
+                console.log("Decoded data for detail:", data); // DEBUG
+
+                let detailHtml = `<h3>Detail ${entity.replace('all', '')}</h3>`;
+                detailHtml += `<ul>`;
+                for (const key in data) {
+                    // Penanganan khusus untuk Tanggal Lahir agar tampil lebih user-friendly
+                    if (key === 'tanggal_lahir' && data[key]) {
+                        const date = new Date(data[key]);
+                        detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${date.toLocaleDateString('id-ID')}</li>`;
+                    } else {
+                        detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${data[key] !== null ? data[key] : 'N/A'}</li>`;
+                    }
+                }
+                detailHtml += `</ul>`;
+                detailHtml += `<button onclick="hideDetail()">Tutup</button>`;
+
+                const detailContainer = document.getElementById('detail-container');
+                detailContainer.innerHTML = detailHtml;
+                detailContainer.style.display = 'block';
+                document.getElementById('modal-overlay').style.display = 'block';
+            } catch (e) {
+                console.error("Error decoding or parsing data in showDetail:", e);
+                alert("Failed to load detail data. Check console for details.");
+            }
+        }
+
+        function hideDetail() {
+            document.getElementById('detail-container').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'none';
+        }
+
+        // Helper untuk mendapatkan nama field ID yang benar berdasarkan entitas
+        function idFieldName(entity) {
+            switch (entity) {
+                case 'allTenagaKesehatan': return 'id_nakes';
+                case 'allPasien': return 'id_pasien';
+                case 'allDokter': return 'id_dokter';
+                case 'allPerawat': return 'id_perawat';
+                default: return 'id'; // Default, sesuaikan jika ada ID generik
+            }
+        }
+    </script>
+</body>
+</html>

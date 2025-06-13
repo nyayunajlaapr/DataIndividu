@@ -15,97 +15,162 @@ class Dokter
         $this->pdo = $pdo;
     }
 
+    /**
+     * Mengambil satu data dokter berdasarkan ID.
+     * @param int $id ID Dokter
+     * @return array|false
+     */
+    public function getDokterById($id)
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT id_dokter, id_nakes, nip, nama_dokter, status, str, spesialisasi, no_hp FROM dokter WHERE id_dokter = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching Dokter by ID: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil data dokter.");
+        }
+    }
+
+    /**
+     * Mengambil semua data dokter.
+     * @return array
+     */
+    public function getAllDokter()
+    {
+        try {
+            $stmt = $this->pdo->query("SELECT id_dokter, id_nakes, nip, nama_dokter, status, str, spesialisasi, no_hp FROM dokter ORDER BY id_dokter ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching all Dokter: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil semua data dokter.");
+        }
+    }
+
+    /**
+     * Membuat data dokter baru.
+     * @param array $data Data dokter yang akan disimpan.
+     * @return array|null Data dokter yang baru dibuat, atau null jika gagal.
+     */
     public function createDokter(array $data)
     {
         try {
-            $stmt = $this->pdo->prepare(
-                "INSERT INTO dokter (
-                    id_nakes, nip, nama_dokter, status,
-                    str, spesialisasi, no_hp
-                ) VALUES (
-                    :id_nakes, :nip, :nama_dokter, :status,
-                    :str, :spesialisasi, :no_hp
-                )"
-            );
+            $sql = "INSERT INTO dokter (id_nakes, nip, nama_dokter, status, str, spesialisasi, no_hp)
+                    VALUES (:id_nakes, :nip, :nama_dokter, :status, :str, :spesialisasi, :no_hp)";
+            $stmt = $this->pdo->prepare($sql);
 
-            // Mapping dari camelCase GraphQL ke snake_case database
-            $stmt->bindParam(':id_nakes', $data['idNakes']);
-            $stmt->bindParam(':nip', $data['nip']);
-            $stmt->bindParam(':nama_dokter', $data['namaDokter']); // Menggunakan namaDokter dari GraphQL
-            $stmt->bindParam(':status', $data['status']);
-            $stmt->bindParam(':str', $data['str']);
-            $stmt->bindParam(':spesialisasi', $data['spesialisasi']);
-            $stmt->bindParam(':no_hp', $data['noHp']);
+            $stmt->bindValue(':id_nakes', $data['idNakes'] ?? null, PDO::PARAM_INT); // GraphQL uses camelCase, DB uses snake_case
+            $stmt->bindValue(':nip', $data['nip'] ?? null);
+            $stmt->bindValue(':nama_dokter', $data['namaDokter'] ?? null);
+            $stmt->bindValue(':status', $data['status'] ?? null);
+            $stmt->bindValue(':str', $data['str'] ?? null);
+            $stmt->bindValue(':spesialisasi', $data['spesialisasi'] ?? null);
+            $stmt->bindValue(':no_hp', $data['noHp'] ?? null);
 
-            $stmt->execute();
-            return $this->getDokterById((int)$this->pdo->lastInsertId());
-        } catch (PDOException $e) {
-            error_log("Error creating dokter: " . $e->getMessage());
+            $executeResult = $stmt->execute();
+
+            if ($executeResult) {
+                $lastId = $this->pdo->lastInsertId();
+                if ($lastId) {
+                    return $this->getDokterById((int)$lastId);
+                }
+            }
             return null;
+
+        } catch (PDOException $e) {
+            error_log("Error creating Dokter: " . $e->getMessage());
+            var_dump("PDOException caught in createDokter: " . $e->getMessage()); // For immediate debug in terminal
+            throw new \Exception("Database Error Dokter: Gagal membuat dokter baru: " . $e->getMessage());
+        } catch (\Exception $e) {
+             error_log("General Error creating Dokter: " . $e->getMessage());
+             var_dump("General Exception caught in createDokter: " . $e->getMessage()); // For immediate debug in terminal
+             throw new \Exception("General Error Dokter: Gagal membuat dokter baru: " . $e->getMessage());
         }
     }
 
-    public function getDokterById(int $id)
-    {
-        $stmt = $this->pdo->prepare("SELECT * FROM dokter WHERE id_dokter = :id");
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function getAllDokter()
-    {
-        $stmt = $this->pdo->query("SELECT * FROM dokter");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function updateDokter(int $id, array $data)
+    /**
+     * Memperbarui data dokter yang sudah ada.
+     * @param int $id ID Dokter
+     * @param array $data Data dokter yang akan diperbarui.
+     * @return array|null Data dokter yang diperbarui, atau null jika gagal.
+     */
+    public function updateDokter($id, array $data)
     {
         try {
-            $setParts = [];
+            $setClauses = [];
             $bindValues = [];
+
+            // Mapping GraphQL camelCase ke kolom database snake_case
+            $fieldMap = [
+                'idNakes' => 'id_nakes',
+                'nip' => 'nip',
+                'namaDokter' => 'nama_dokter',
+                'status' => 'status',
+                'str' => 'str',
+                'spesialisasi' => 'spesialisasi',
+                'noHp' => 'no_hp',
+            ];
+
             foreach ($data as $key => $value) {
-                // Konversi camelCase GraphQL arg ke snake_case kolom database
-                // Perlakuan khusus untuk namaDokter menjadi nama_dokter
-                if ($key === 'namaDokter') {
-                    $dbColumn = 'nama_dokter';
-                } elseif ($key === 'idNakes') { // Perlakuan khusus untuk idNakes menjadi id_nakes
-                    $dbColumn = 'id_nakes';
-                } else {
-                    $dbColumn = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $key));
+                if (isset($fieldMap[$key])) {
+                    $dbColumn = $fieldMap[$key];
+                    $setClauses[] = "$dbColumn = :$key";
+                    $bindValues[":$key"] = $value;
                 }
-                $setParts[] = "$dbColumn = :$key";
-                $bindValues[":$key"] = $value;
-            }
-            $setClause = implode(', ', $setParts);
-
-            if (empty($setClause)) {
-                return $this->getDokterById($id);
             }
 
-            $sql = "UPDATE dokter SET $setClause WHERE id_dokter = :id";
+            if (empty($setClauses)) {
+                return $this->getDokterById($id); // Tidak ada yang diupdate
+            }
+
+            $sql = "UPDATE dokter SET " . implode(', ', $setClauses) . " WHERE id_dokter = :id";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->bindParam(':id', $id);
+
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             foreach ($bindValues as $param => $value) {
-                $stmt->bindValue($param, $value);
+                // Determine param type for idNakes if it's explicitly null/int
+                if ($param === ':idNakes' && ($value === null || is_int($value))) {
+                    $stmt->bindValue($param, $value, PDO::PARAM_INT);
+                } else {
+                    $stmt->bindValue($param, $value);
+                }
             }
+
             $stmt->execute();
             return $this->getDokterById($id);
+
         } catch (PDOException $e) {
-            error_log("Error updating dokter (ID: $id): " . $e->getMessage());
-            return null;
+            error_log("Error updating Dokter: " . $e->getMessage());
+            var_dump("PDOException caught in updateDokter: " . $e->getMessage()); // For immediate debug in terminal
+            throw new \Exception("Database Error Dokter: Gagal memperbarui data dokter: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error updating Dokter: " . $e->getMessage());
+            var_dump("General Exception caught in updateDokter: " . $e->getMessage()); // For immediate debug in terminal
+            throw new \Exception("General Error Dokter: Gagal memperbarui data dokter: " . $e->getMessage());
         }
     }
 
-    public function deleteDokter(int $id)
+    /**
+     * Menghapus data dokter berdasarkan ID.
+     * @param int $id ID Dokter
+     * @return bool True jika berhasil dihapus, false jika tidak.
+     */
+    public function deleteDokter($id)
     {
         try {
             $stmt = $this->pdo->prepare("DELETE FROM dokter WHERE id_dokter = :id");
-            $stmt->bindParam(':id', $id);
-            return $stmt->execute();
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error deleting dokter (ID: $id): " . $e->getMessage());
-            return false;
+            error_log("Error deleting Dokter: " . $e->getMessage());
+            var_dump("PDOException caught in deleteDokter: " . $e->getMessage()); // For immediate debug in terminal
+            throw new \Exception("Database Error Dokter: Gagal menghapus dokter: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error deleting Dokter: " . $e->getMessage());
+            var_dump("General Exception caught in deleteDokter: " . $e->getMessage()); // For immediate debug in terminal
+            throw new \Exception("General Error Dokter: Gagal menghapus dokter: " . $e->getMessage());
         }
     }
 }

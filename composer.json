@@ -15,6 +15,7 @@
         }
     ],
     "require": {
-        "webonyx/graphql-php": "^15.20"
+        "webonyx/graphql-php": "^15.20",
+        "vlucas/phpdotenv": "^5.6"
     }
 }

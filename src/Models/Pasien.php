@@ -1,4 +1,5 @@
 <?php
+// src/Models/Pasien.php
 
 namespace Iae\LayananDataIndividu\Models;
 
@@ -15,121 +16,144 @@ class Pasien
     }
 
     /**
-     * Mengambil semua data pasien.
-     * @return array
-     */
-    public function getAllPasien(): array
-    {
-        try {
-            $stmt = $this->pdo->query("SELECT * FROM pasien ORDER BY id_pasien DESC");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            error_log("Error fetching all patients: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Mengambil data pasien berdasarkan ID.
-     * @param int $id
+     * Mengambil satu data pasien berdasarkan ID.
+     * @param int $id ID Pasien
      * @return array|false
      */
-    public function getPasienById(int $id)
+    public function getPasienById($id)
     {
         try {
-            $stmt = $this->pdo->prepare("SELECT * FROM pasien WHERE id_pasien = :id");
+            $stmt = $this->pdo->prepare("SELECT id_pasien, nik, nama_lengkap, jenis_kelamin, tanggal_lahir, no_bpjs, pekerjaan, status_pernikahan FROM pasien WHERE id_pasien = :id");
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("Error fetching patient by ID: " . $e->getMessage());
-            return false;
+            error_log("Error fetching Pasien by ID: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil data pasien.");
+        }
+    }
+
+    /**
+     * Mengambil semua data pasien.
+     * @return array
+     */
+    public function getAllPasien()
+    {
+        try {
+            $stmt = $this->pdo->query("SELECT id_pasien, nik, nama_lengkap, jenis_kelamin, tanggal_lahir, no_bpjs, pekerjaan, status_pernikahan FROM pasien ORDER BY id_pasien ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching all Pasien: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil semua data pasien.");
         }
     }
 
     /**
      * Membuat data pasien baru.
-     * @param array $data Data pasien (namaLengkap, jenisKelamin, dll.)
-     * @return array|false Data pasien yang baru dibuat atau false jika gagal
+     * @param array $data Data pasien yang akan disimpan.
+     * @return array|null Data pasien yang baru dibuat, atau null jika gagal.
      */
     public function createPasien(array $data)
     {
-        // Hapus 'alamat' dari daftar kolom
-        $sql = "INSERT INTO pasien (
-            nama_lengkap, jenis_kelamin, tanggal_lahir, no_bpjs,
-            status_pernikahan, pekerjaan, nik
-        ) VALUES (
-            :nama_lengkap, :jenis_kelamin, :tanggal_lahir, :no_bpjs,
-            :status_pernikahan, :pekerjaan, :nik
-        )";
-
         try {
+            $sql = "INSERT INTO pasien (nik, nama_lengkap, jenis_kelamin, tanggal_lahir, no_bpjs, pekerjaan, status_pernikahan)
+                    VALUES (:nik, :nama_lengkap, :jenis_kelamin, :tanggal_lahir, :no_bpjs, :pekerjaan, :status_pernikahan)";
             $stmt = $this->pdo->prepare($sql);
 
-            $stmt->bindParam(':nama_lengkap', $data['namaLengkap']);
-            $stmt->bindParam(':jenis_kelamin', $data['jenisKelamin']);
-            $stmt->bindParam(':tanggal_lahir', $data['tanggalLahir']);
-            $stmt->bindParam(':no_bpjs', $data['noBpjs']);
-            // Hapus baris ini: $stmt->bindParam(':alamat', $data['alamat']);
-            $stmt->bindParam(':status_pernikahan', $data['statusPernikahan']);
-            $stmt->bindParam(':pekerjaan', $data['pekerjaan']);
-            $stmt->bindParam(':nik', $data['nik']);
+            $stmt->bindValue(':nik', $data['nik'] ?? null);
+            $stmt->bindValue(':nama_lengkap', $data['namaLengkap'] ?? null); // GraphQL uses camelCase, DB uses snake_case
+            $stmt->bindValue(':jenis_kelamin', $data['jenisKelamin'] ?? null);
+            $stmt->bindValue(':tanggal_lahir', $data['tanggalLahir'] ?? null);
+            $stmt->bindValue(':no_bpjs', $data['noBpjs'] ?? null);
+            $stmt->bindValue(':pekerjaan', $data['pekerjaan'] ?? null);
+            $stmt->bindValue(':status_pernikahan', $data['statusPernikahan'] ?? null);
 
-            $stmt->execute();
+            $executeResult = $stmt->execute();
 
-            $lastId = $this->pdo->lastInsertId('pasien_id_pasien_seq');
-            return $this->getPasienById((int)$lastId);
+            if ($executeResult) {
+                $lastId = $this->pdo->lastInsertId();
+                if ($lastId) {
+                    return $this->getPasienById((int)$lastId);
+                }
+            }
+            return null;
+
         } catch (PDOException $e) {
-            error_log("Error creating patient: " . $e->getMessage());
-            return false;
+            error_log("Error creating Pasien: " . $e->getMessage());
+            var_dump("PDOException caught in createPasien: " . $e->getMessage());
+            throw new \Exception("Database Error Pasien: Gagal membuat pasien baru: " . $e->getMessage());
+        } catch (\Exception $e) {
+             error_log("General Error creating Pasien: " . $e->getMessage());
+             var_dump("General Exception caught in createPasien: " . $e->getMessage());
+             throw new \Exception("General Error Pasien: Gagal membuat pasien baru: " . $e->getMessage());
         }
     }
 
     /**
-     * Memperbarui data pasien.
-     * @param int $id
-     * @param array $data Data yang akan diperbarui
-     * @return array|false Data pasien yang diperbarui atau false jika gagal
+     * Memperbarui data pasien yang sudah ada.
+     * @param int $id ID Pasien
+     * @param array $data Data pasien yang akan diperbarui.
+     * @return array|null Data pasien yang diperbarui, atau null jika gagal.
      */
-    public function updatePasien(int $id, array $data)
+    public function updatePasien($id, array $data)
     {
-        // Hapus 'alamat' dari klausa SET
-        $sql = "UPDATE pasien SET
-            nama_lengkap = :nama_lengkap,
-            jenis_kelamin = :jenis_kelamin,
-            tanggal_lahir = :tanggal_lahir,
-            no_bpjs = :no_bpjs,
-            status_pernikahan = :status_pernikahan,
-            pekerjaan = :pekerjaan,
-            nik = :nik
-            WHERE id_pasien = :id_pasien";
-
         try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->bindParam(':nama_lengkap', $data['namaLengkap']);
-            $stmt->bindParam(':jenis_kelamin', $data['jenisKelamin']);
-            $stmt->bindParam(':tanggal_lahir', $data['tanggalLahir']);
-            $stmt->bindParam(':no_bpjs', $data['noBpjs']);
-            // Hapus baris ini: $stmt->bindParam(':alamat', $data['alamat']);
-            $stmt->bindParam(':status_pernikahan', $data['statusPernikahan']);
-            $stmt->bindParam(':pekerjaan', $data['pekerjaan']);
-            $stmt->bindParam(':nik', $data['nik']);
-            $stmt->bindParam(':id_pasien', $id, PDO::PARAM_INT);
-            $stmt->execute();
+            $setClauses = [];
+            $bindValues = [];
 
+            // Mapping GraphQL camelCase ke kolom database snake_case
+            $fieldMap = [
+                'nik' => 'nik',
+                'namaLengkap' => 'nama_lengkap',
+                'jenisKelamin' => 'jenis_kelamin',
+                'tanggalLahir' => 'tanggal_lahir',
+                'noBpjs' => 'no_bpjs',
+                'pekerjaan' => 'pekerjaan',
+                'statusPernikahan' => 'status_pernikahan',
+            ];
+
+            foreach ($data as $key => $value) {
+                if (isset($fieldMap[$key])) {
+                    $dbColumn = $fieldMap[$key];
+                    $setClauses[] = "$dbColumn = :$key";
+                    $bindValues[":$key"] = $value; // Use the GraphQL key as parameter name
+                }
+            }
+
+            if (empty($setClauses)) {
+                return $this->getPasienById($id); // Tidak ada yang diupdate
+            }
+
+            $sql = "UPDATE pasien SET " . implode(', ', $setClauses) . " WHERE id_pasien = :id";
+            $stmt = $this->pdo->prepare($sql);
+
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            foreach ($bindValues as $param => $value) {
+                // IMPORTANT: Bind value using the GraphQL key, not the DB column name,
+                // because that's what's used in the :$key placeholder above.
+                $stmt->bindValue($param, $value);
+            }
+
+            $stmt->execute();
             return $this->getPasienById($id);
+
         } catch (PDOException $e) {
-            error_log("Error updating patient: " . $e->getMessage());
-            return false;
+            error_log("Error updating Pasien: " . $e->getMessage());
+            var_dump("PDOException caught in updatePasien: " . $e->getMessage());
+            throw new \Exception("Database Error Pasien: Gagal memperbarui data pasien: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error updating Pasien: " . $e->getMessage());
+            var_dump("General Exception caught in updatePasien: " . $e->getMessage());
+            throw new \Exception("General Error Pasien: Gagal memperbarui data pasien: " . $e->getMessage());
         }
     }
 
     /**
-     * Menghapus data pasien.
-     * @param int $id
-     * @return bool True jika berhasil dihapus, false jika gagal
+     * Menghapus data pasien berdasarkan ID.
+     * @param int $id ID Pasien
+     * @return bool True jika berhasil dihapus, false jika tidak.
      */
-    public function deletePasien(int $id): bool
+    public function deletePasien($id)
     {
         try {
             $stmt = $this->pdo->prepare("DELETE FROM pasien WHERE id_pasien = :id");
@@ -137,8 +161,13 @@ class Pasien
             $stmt->execute();
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error deleting patient: " . $e->getMessage());
-            return false;
+            error_log("Error deleting Pasien: " . $e->getMessage());
+            var_dump("PDOException caught in deletePasien: " . $e->getMessage());
+            throw new \Exception("Database Error Pasien: Gagal menghapus pasien: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error deleting Pasien: " . $e->getMessage());
+            var_dump("General Exception caught in deletePasien: " . $e->getMessage());
+            throw new \Exception("General Error Pasien: Gagal menghapus pasien: " . $e->getMessage());
         }
     }
 }

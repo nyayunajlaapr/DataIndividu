@@ -15,90 +15,159 @@ class TenagaKesehatan
         $this->pdo = $pdo;
     }
 
+    /**
+     * Mengambil satu data tenaga kesehatan berdasarkan ID.
+     * @param int $id ID Tenaga Kesehatan
+     * @return array|false
+     */
+    public function getTenagaKesehatanById($id)
+    {
+        try {
+            // HANYA SELECT KOLOM YANG ADA DI TABEL ANDA
+            $stmt = $this->pdo->prepare("SELECT id_nakes, nip, role, str FROM tenaga_kesehatan WHERE id_nakes = :id");
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching TenagaKesehatan by ID: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil data tenaga kesehatan.");
+        }
+    }
+
+    /**
+     * Mengambil semua data tenaga kesehatan.
+     * @return array
+     */
+    public function getAllTenagaKesehatan()
+    {
+        try {
+            // HANYA SELECT KOLOM YANG ADA DI TABEL ANDA
+            $stmt = $this->pdo->query("SELECT id_nakes, nip, role, str FROM tenaga_kesehatan ORDER BY id_nakes ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error fetching all TenagaKesehatan: " . $e->getMessage());
+            throw new \Exception("Database Error: Gagal mengambil semua data tenaga kesehatan.");
+        }
+    }
+
+    /**
+     * Membuat data tenaga kesehatan baru.
+     * @param array $data Data tenaga kesehatan yang akan disimpan.
+     * @return array|null Data tenaga kesehatan yang baru dibuat, atau null jika gagal.
+     */
     public function createTenagaKesehatan(array $data)
     {
         try {
-            $stmt = $this->pdo->prepare(
-                "INSERT INTO tenaga_kesehatan (
-                    nip, nama_lengkap, jenis_kelamin, tanggal_lahir, no_hp,
-                    no_bpjs, status_pernikahan, pekerjaan, role
-                ) VALUES (
-                    :nip, :nama_lengkap, :jenis_kelamin, :tanggal_lahir, :no_hp,
-                    :no_bpjs, :status_pernikahan, :pekerjaan, :role
-                )"
-            );
+            // HANYA INSERT KE KOLOM YANG ADA DI TABEL ANDA
+            $sql = "INSERT INTO tenaga_kesehatan (nip, role, str)
+                    VALUES (:nip, :role, :str)";
+            $stmt = $this->pdo->prepare($sql);
 
-            $stmt->bindParam(':nip', $data['nip']);
-            $stmt->bindParam(':nama_lengkap', $data['namaLengkap']);
-            $stmt->bindParam(':jenis_kelamin', $data['jenisKelamin']);
-            $stmt->bindParam(':tanggal_lahir', $data['tanggalLahir']);
-            $stmt->bindParam(':no_hp', $data['noHp']);
-            $stmt->bindParam(':no_bpjs', $data['noBpjs']);
-            $stmt->bindParam(':status_pernikahan', $data['statusPernikahan']);
-            $stmt->bindParam(':pekerjaan', $data['pekerjaan']);
-            $stmt->bindParam(':role', $data['role']);
+            // HANYA BIND NILAI UNTUK KOLOM YANG ADA
+            $stmt->bindValue(':nip', $data['nip'] ?? null);
+            $stmt->bindValue(':role', $data['role'] ?? null);
+            $stmt->bindValue(':str', $data['str'] ?? null);
 
-            $stmt->execute();
-            return $this->getTenagaKesehatanById((int)$this->pdo->lastInsertId());
-        } catch (PDOException $e) {
-            error_log("Error creating tenaga kesehatan: " . $e->getMessage());
+            $executeResult = $stmt->execute();
+
+            if ($executeResult) {
+                // Untuk PostgreSQL IDENTITY, lastInsertId() biasanya bekerja tanpa argumen
+                $lastId = $this->pdo->lastInsertId();
+
+                if ($lastId) {
+                    return $this->getTenagaKesehatanById((int)$lastId);
+                }
+            }
             return null;
+
+        } catch (PDOException $e) {
+            error_log("Error creating TenagaKesehatan: " . $e->getMessage());
+            // Tambahkan ini agar error juga terlihat jelas di terminal saat debugging
+           
+            throw new \Exception("Database Error TenagaKesehatan: Gagal membuat tenaga kesehatan baru: " . $e->getMessage());
+        } catch (\Exception $e) {
+             error_log("General Error creating TenagaKesehatan: " . $e->getMessage());
+            
+             throw new \Exception("General Error TenagaKesehatan: Gagal membuat tenaga kesehatan baru: " . $e->getMessage());
         }
     }
 
-    public function getTenagaKesehatanById(int $id)
-    {
-        $stmt = $this->pdo->prepare("SELECT * FROM tenaga_kesehatan WHERE id_nakes = :id");
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function getAllTenagaKesehatan()
-    {
-        $stmt = $this->pdo->query("SELECT * FROM tenaga_kesehatan");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function updateTenagaKesehatan(int $id, array $data)
+    /**
+     * Memperbarui data tenaga kesehatan yang sudah ada.
+     * @param int $id ID Tenaga Kesehatan
+     * @param array $data Data tenaga kesehatan yang akan diperbarui.
+     * @return array|null Data tenaga kesehatan yang diperbarui, atau null jika gagal.
+     */
+    public function updateTenagaKesehatan($id, array $data)
     {
         try {
-            $setParts = [];
+            $setClauses = [];
             $bindValues = [];
+
+            // HANYA MAPPING KOLOM YANG ADA DI TABEL ANDA
+            $fieldMap = [
+                'nip' => 'nip',
+                'role' => 'role',
+                'str' => 'str',
+            ];
+
             foreach ($data as $key => $value) {
-                $dbColumn = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $key));
-                $setParts[] = "$dbColumn = :$key";
-                $bindValues[":$key"] = $value;
-            }
-            $setClause = implode(', ', $setParts);
-
-            if (empty($setClause)) {
-                return $this->getTenagaKesehatanById($id);
+                if (isset($fieldMap[$key])) {
+                    $dbColumn = $fieldMap[$key];
+                    $setClauses[] = "$dbColumn = :$key";
+                    $bindValues[":$key"] = $value;
+                }
             }
 
-            $sql = "UPDATE tenaga_kesehatan SET $setClause WHERE id_nakes = :id";
+            if (empty($setClauses)) {
+                return $this->getTenagaKesehatanById($id); // Tidak ada yang diupdate
+            }
+
+            $sql = "UPDATE tenaga_kesehatan SET " . implode(', ', $setClauses) . " WHERE id_nakes = :id";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->bindParam(':id', $id);
+
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             foreach ($bindValues as $param => $value) {
                 $stmt->bindValue($param, $value);
             }
+
             $stmt->execute();
+            // var_dump($stmt->errorInfo()); // Debugging
+
             return $this->getTenagaKesehatanById($id);
+
         } catch (PDOException $e) {
-            error_log("Error updating tenaga kesehatan (ID: $id): " . $e->getMessage());
-            return null;
+            error_log("Error updating TenagaKesehatan: " . $e->getMessage());
+            
+            throw new \Exception("Database Error TenagaKesehatan: Gagal memperbarui data tenaga kesehatan: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error updating TenagaKesehatan: " . $e->getMessage());
+            
+            throw new \Exception("General Error TenagaKesehatan: Gagal memperbarui data tenaga kesehatan: " . $e->getMessage());
         }
     }
 
-    public function deleteTenagaKesehatan(int $id)
+    /**
+     * Menghapus data tenaga kesehatan berdasarkan ID.
+     * @param int $id ID Tenaga Kesehatan
+     * @return bool True jika berhasil dihapus, false jika tidak.
+     */
+    public function deleteTenagaKesehatan($id)
     {
         try {
             $stmt = $this->pdo->prepare("DELETE FROM tenaga_kesehatan WHERE id_nakes = :id");
-            $stmt->bindParam(':id', $id);
-            return $stmt->execute();
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            // var_dump($stmt->errorInfo()); // Debugging
+            return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error deleting tenaga kesehatan (ID: $id): " . $e->getMessage());
-            return false;
+            error_log("Error deleting TenagaKesehatan: " . $e->getMessage());
+            
+            throw new \Exception("Database Error TenagaKesehatan: Gagal menghapus tenaga kesehatan: " . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log("General Error deleting TenagaKesehatan: " . $e->getMessage());
+           
+            throw new \Exception("General Error TenagaKesehatan: Gagal menghapus tenaga kesehatan: " . $e->getMessage());
         }
     }
 }

@@ -1,0 +1,52 @@
+# docker-compose.yml
+
+version: '3.8' # Versi Docker Compose
+
+services:
+  # Service untuk aplikasi PHP kita (PHP-FPM)
+  app:
+    build:
+      context: . # Lokasi Dockerfile
+      dockerfile: DockerFile
+    # Mount volume agar perubahan kode lokal langsung terlihat di container
+    volumes:
+      - .:/var/www/html
+    # Lingkungan variabel dari .env file
+    env_file:
+      - ./.env # Ini akan memuat DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS, DB_SSLMODE dari .env
+    expose:
+      - "9000"
+    # Jangan map port di sini
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  # Service untuk PostgreSQL database
+  # Catatan: Kita tidak akan langsung menginisialisasi database di sini
+  # karena Anda menggunakan database eksternal (Neon Tech).
+  # Service 'db' di sini hanya sebagai placeholder jika Anda ingin menjalankannya secara lokal nanti,
+  # atau bisa dihapus jika tidak ada kebutuhan database lokal sama sekali.
+  # Namun, untuk saat ini, kita biarkan saja agar `app` tetap `depends_on: db`
+  # (Meskipun `app` akan langsung konek ke Neon, bukan ke service `db` ini).
+  db:
+    image: postgres:15-alpine # Anda bisa tetap memiliki service ini untuk potensi pengembangan lokal
+    restart: always
+    # Variabel lingkungan ini HANYA untuk container 'db' lokal ini
+    # Aplikasi PHP Anda akan menggunakan variabel dari .env yang mengarah ke Neon
+    environment:
+      POSTGRES_DB: local_db # Nama DB lokal (contoh)
+      POSTGRES_USER: local_user # User DB lokal (contoh)
+      POSTGRES_PASSWORD: local_password # Password DB lokal (contoh)
+    volumes:
+      - db_data:/var/lib/postgresql/data # Volume untuk menyimpan data database lokal
+
+# Definisi volume untuk database lokal
+volumes:
+  db_data:
