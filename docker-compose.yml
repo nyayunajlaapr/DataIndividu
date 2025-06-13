@@ -7,7 +7,7 @@ services:
   app:
     build:
       context: . # Lokasi Dockerfile
-      dockerfile: DockerFile
+      dockerfile: Dockerfile
     # Mount volume agar perubahan kode lokal langsung terlihat di container
     volumes:
       - .:/var/www/html
