@@ -4,199 +4,297 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Layanan Data Individu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1, h2 { color: #0056b3; }
-        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }
-        button { background-color: #007bff; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-right: 5px; margin-bottom: 5px; }
-        button:hover { background-color: #0056b3; }
-        .data-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .action-buttons button { margin: 0 2px; padding: 5px 8px; font-size: 12px; }
-        .form-section { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; }
-        .form-section label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-section input[type="text"], .form-section input[type="number"], .form-section input[type="date"], .form-section select {
-            width: calc(100% - 20px);
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+        /* Gaya kustom tambahan jika diperlukan, untuk mengatasi kasus spesifik */
+        /* Pastikan tabel responsif untuk data yang sangat banyak */
+        .table-container {
+            overflow-x: auto; /* Memungkinkan scrolling horizontal untuk tabel jika terlalu lebar */
         }
-        .form-section button { margin-top: 10px; }
-        #modal-overlay {
-            display: none;
+        table {
+            min-width: 100%; /* Memastikan tabel mengisi lebar container, tapi bisa lebih jika kontennya banyak */
+            border-collapse: collapse;
+        }
+        th, td {
+            white-space: nowrap; /* Mencegah teks putus baris di kolom */
+            padding: 10px 8px; /* Tambahkan sedikit padding */
+        }
+        /* Override untuk form select agar terlihat lebih konsisten */
+        select {
+            appearance: none; /* Menghapus default style browser */
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='currentColor'%3e%3cpath d='M7 7l3 3 3-3'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+        }
+
+        /* Styles for Toast Messages */
+        #toast-container {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.3);
-            z-index: 999;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        #detail-container {
-            display:none;
-            position:fixed;
-            top:10%;
-            left:50%;
-            transform:translate(-50%, 0);
-            background:white;
-            padding:20px;
-            border-radius:8px;
-            box-shadow:0 4px 8px rgba(0,0,0,0.2);
-            z-index:1000;
-            min-width:300px;
-            max-height: 80vh;
-            overflow-y: auto;
+        .toast {
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: fadeInOut 4s forwards; /* Adjust duration as needed */
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        #detail-container h3 {
-            margin-top: 0;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        #detail-container ul {
-            list-style: none;
-            padding: 0;
-        }
-        #detail-container ul li {
-            margin-bottom: 5px;
+        .toast.success { background-color: #28a745; } /* Green */
+        .toast.error { background-color: #dc3545; }   /* Red */
+        .toast.info { background-color: #17a2b8; }    /* Blue */
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Dashboard Layanan Data Individu</h1>
-        <p>Aplikasi ini menampilkan data dari GraphQL API.</p>
+<body class="font-sans bg-pink-50 text-gray-800 p-5">
+    <div class="container mx-auto max-w-7xl bg-white p-8 rounded-lg shadow-lg">
+        <h1 class="text-4xl font-extrabold text-blue-800 mb-4 text-center">Dashboard Layanan Data Individu</h1>
+        <p class="text-gray-600 mb-6 text-center text-lg">By: Kelompok IAE-GTW</p>
 
-        <hr>
+        <div id="loading-indicator" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+            <div class="bg-white p-6 rounded-lg shadow-xl flex items-center space-x-3">
+                <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-lg font-semibold text-gray-700">Memuat data...</span>
+            </div>
+        </div>
+        <hr class="my-6 border-gray-300">
 
-        <h2>Data Tenaga Kesehatan</h2>
-        <button onclick="fetchData('allTenagaKesehatan')">Muat Semua Tenaga Kesehatan</button>
-        <button onclick="showForm('tenagaKesehatanForm', 'add')">Tambah Tenaga Kesehatan Baru</button>
-        <div id="tenagaKesehatanData" class="data-section"></div>
+        <h2 class="text-3xl font-semibold text-blue-700 mb-4">Data Tenaga Kesehatan</h2>
+        <div class="flex flex-wrap gap-2 mb-4">
+            <button id="btnTenagaKesehatan" onclick="toggleData('allTenagaKesehatan', 'tenagaKesehatanData', 'btnTenagaKesehatan')" class="bg-blue-400 hover:bg-blue-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Muat Semua Tenaga Kesehatan</button>
+            <button onclick="showForm('tenagaKesehatanForm', 'add')" class="bg-green-400 hover:bg-green-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Tambah Tenaga Kesehatan Baru</button>
+        </div>
+        <div id="tenagaKesehatanData" class="data-section mt-4 pt-4 border-t border-gray-200 table-container" style="display: none;"></div>
 
-        <div id="tenagaKesehatanForm" class="form-section" style="display: none;">
-            <h3><span id="tk_formTitle">Tambah</span> Tenaga Kesehatan</h3>
+        <div id="tenagaKesehatanForm" class="form-section mt-5 p-6 border border-blue-200 rounded-lg bg-blue-50 shadow-md" style="display: none;">
+            <h3 class="text-2xl font-semibold text-blue-700 mb-4"><span id="tk_formTitle">Tambah</span> Tenaga Kesehatan</h3>
             <input type="hidden" id="tk_id_nakes">
-            <label for="tk_nip">NIP:</label>
-            <input type="text" id="tk_nip" required>
-            <label for="tk_role">Role:</label>
-            <input type="text" id="tk_role" required>
-            <label for="tk_str">STR:</label>
-            <input type="text" id="tk_str" required>
-            <button onclick="submitTenagaKesehatanForm()">Simpan</button>
-            <button onclick="hideForm('tenagaKesehatanForm')">Batal</button>
+            <label for="tk_nip" class="block text-base font-medium text-gray-700 mb-1">NIP:</label>
+            <input type="text" id="tk_nip" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="tk_role" class="block text-base font-medium text-gray-700 mb-1">Role:</label>
+            <input type="text" id="tk_role" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="tk_str" class="block text-base font-medium text-gray-700 mb-1">STR:</label>
+            <input type="text" id="tk_str" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <div class="flex gap-2 mt-4">
+                <button onclick="submitTenagaKesehatanForm()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Simpan</button>
+                <button onclick="hideForm('tenagaKesehatanForm')" class="bg-gray-400 hover:bg-gray-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Batal</button>
+            </div>
         </div>
 
-        <hr>
+        <hr class="my-6 border-gray-300">
 
-        <h2>Data Pasien</h2>
-        <button onclick="fetchData('allPasien')">Muat Semua Pasien</button>
-        <button onclick="showForm('pasienForm', 'add')">Tambah Pasien Baru</button>
-        <div id="pasienData" class="data-section"></div>
+        <h2 class="text-3xl font-semibold text-blue-700 mb-4">Data Pasien</h2>
+        <div class="flex flex-wrap gap-2 mb-4">
+            <button id="btnPasien" onclick="toggleData('allPasien', 'pasienData', 'btnPasien')" class="bg-blue-400 hover:bg-blue-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Muat Semua Pasien</button>
+            <button onclick="showForm('pasienForm', 'add')" class="bg-green-400 hover:bg-green-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Tambah Pasien Baru</button>
+        </div>
+        <div id="pasienData" class="data-section mt-4 pt-4 border-t border-gray-200 table-container" style="display: none;"></div>
 
-        <div id="pasienForm" class="form-section" style="display: none;">
-            <h3><span id="pasien_formTitle">Tambah</span> Pasien</h3>
+        <div id="pasienForm" class="form-section mt-5 p-6 border border-blue-200 rounded-lg bg-blue-50 shadow-md" style="display: none;">
+            <h3 class="text-2xl font-semibold text-blue-700 mb-4"><span id="pasien_formTitle">Tambah</span> Pasien</h3>
             <input type="hidden" id="pasien_id_pasien">
-            <label for="pasien_nik">NIK:</label>
-            <input type="text" id="pasien_nik" required>
-            <label for="pasien_nama_lengkap">Nama Lengkap:</label>
-            <input type="text" id="pasien_nama_lengkap" required>
-            <label for="pasien_jenis_kelamin">Jenis Kelamin:</label>
-            <select id="pasien_jenis_kelamin" required>
+            <label for="pasien_nik" class="block text-base font-medium text-gray-700 mb-1">NIK:</label>
+            <input type="text" id="pasien_nik" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="pasien_nama_lengkap" class="block text-base font-medium text-gray-700 mb-1">Nama Lengkap:</label>
+            <input type="text" id="pasien_nama_lengkap" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="pasien_jenis_kelamin" class="block text-base font-medium text-gray-700 mb-1">Jenis Kelamin:</label>
+            <select id="pasien_jenis_kelamin" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
                 <option value="">Pilih</option>
                 <option value="L">Laki-laki</option>
                 <option value="P">Perempuan</option>
             </select>
-            <label for="pasien_tanggal_lahir">Tanggal Lahir:</label>
-            <input type="date" id="pasien_tanggal_lahir" required>
-            <label for="pasien_no_bpjs">No BPJS (Opsional):</label>
-            <input type="text" id="pasien_no_bpjs">
-            <label for="pasien_pekerjaan">Pekerjaan:</label>
-            <input type="text" id="pasien_pekerjaan" required>
-            <label for="pasien_status_pernikahan">Status Pernikahan:</label>
-            <select id="pasien_status_pernikahan" required>
+            <label for="pasien_tanggal_lahir" class="block text-base font-medium text-gray-700 mb-1">Tanggal Lahir:</label>
+            <input type="date" id="pasien_tanggal_lahir" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="pasien_no_bpjs" class="block text-base font-medium text-gray-700 mb-1">No BPJS (Opsional):</label>
+            <input type="text" id="pasien_no_bpjs" class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="pasien_pekerjaan" class="block text-base font-medium text-gray-700 mb-1">Pekerjaan:</label>
+            <input type="text" id="pasien_pekerjaan" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="pasien_status_pernikahan" class="block text-base font-medium text-gray-700 mb-1">Status Pernikahan:</label>
+            <select id="pasien_status_pernikahan" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
                 <option value="">Pilih</option>
                 <option value="Belum Menikah">Belum Menikah</option>
                 <option value="Menikah">Menikah</option>
                 <option value="Cerai">Cerai</option>
             </select>
-            <button onclick="submitPasienForm()">Simpan</button>
-            <button onclick="hideForm('pasienForm')">Batal</button>
+            <div class="flex gap-2 mt-4">
+                <button onclick="submitPasienForm()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Simpan</button>
+                <button onclick="hideForm('pasienForm')" class="bg-gray-400 hover:bg-gray-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Batal</button>
+            </div>
         </div>
 
-        <hr>
+        <hr class="my-6 border-gray-300">
 
-        <h2>Data Dokter</h2>
-        <button onclick="fetchData('allDokter')">Muat Semua Dokter</button>
-        <button onclick="showForm('dokterForm', 'add')">Tambah Dokter Baru</button>
-        <div id="dokterData" class="data-section"></div>
+        <h2 class="text-3xl font-semibold text-blue-700 mb-4">Data Dokter</h2>
+        <div class="flex flex-wrap gap-2 mb-4">
+            <button id="btnDokter" onclick="toggleData('allDokter', 'dokterData', 'btnDokter')" class="bg-blue-400 hover:bg-blue-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Muat Semua Dokter</button>
+            <button onclick="showForm('dokterForm', 'add')" class="bg-green-400 hover:bg-green-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Tambah Dokter Baru</button>
+        </div>
+        <div id="dokterData" class="data-section mt-4 pt-4 border-t border-gray-200 table-container" style="display: none;"></div>
 
-        <div id="dokterForm" class="form-section" style="display: none;">
-            <h3><span id="dokter_formTitle">Tambah</span> Dokter</h3>
+        <div id="dokterForm" class="form-section mt-5 p-6 border border-blue-200 rounded-lg bg-blue-50 shadow-md" style="display: none;">
+            <h3 class="text-2xl font-semibold text-blue-700 mb-4"><span id="dokter_formTitle">Tambah</span> Dokter</h3>
             <input type="hidden" id="dokter_id_dokter">
-            <label for="dokter_id_nakes">ID Nakes:</label>
-            <input type="number" id="dokter_id_nakes" required>
-            <label for="dokter_nip">NIP:</label>
-            <input type="text" id="dokter_nip" required>
-            <label for="dokter_nama_dokter">Nama Dokter:</label>
-            <input type="text" id="dokter_nama_dokter" required>
-            <label for="dokter_status">Status:</label>
-            <input type="text" id="dokter_status" required>
-            <label for="dokter_str">STR:</label>
-            <input type="text" id="dokter_str" required>
-            <label for="dokter_spesialisasi">Spesialisasi:</label>
-            <input type="text" id="dokter_spesialisasi" required>
-            <label for="dokter_no_hp">No HP:</label>
-            <input type="text" id="dokter_no_hp" required>
-            <button onclick="submitDokterForm()">Simpan</button>
-            <button onclick="hideForm('dokterForm')">Batal</button>
+            <label for="dokter_id_nakes" class="block text-base font-medium text-gray-700 mb-1">ID Nakes:</label>
+            <input type="number" id="dokter_id_nakes" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="dokter_nip" class="block text-base font-medium text-gray-700 mb-1">NIP:</label>
+            <input type="text" id="dokter_nip" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="dokter_nama_dokter" class="block text-base font-medium text-gray-700 mb-1">Nama Dokter:</label>
+            <input type="text" id="dokter_nama_dokter" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="dokter_status" class="block text-base font-medium text-gray-700 mb-1">Status:</label>
+            <input type="text" id="dokter_status" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="dokter_str" class="block text-base font-medium text-gray-700 mb-1">STR:</label>
+            <input type="text" id="dokter_str" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="dokter_spesialisasi" class="block text-base font-medium text-gray-700 mb-1">Spesialisasi:</label>
+            <input type="text" id="dokter_spesialisasi" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="dokter_no_hp" class="block text-base font-medium text-gray-700 mb-1">No HP:</label>
+            <input type="text" id="dokter_no_hp" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <div class="flex gap-2 mt-4">
+                <button onclick="submitDokterForm()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Simpan</button>
+                <button onclick="hideForm('dokterForm')" class="bg-gray-400 hover:bg-gray-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Batal</button>
+            </div>
         </div>
 
-        <hr>
+        <hr class="my-6 border-gray-300">
 
-        <h2>Data Perawat</h2>
-        <button onclick="fetchData('allPerawat')">Muat Semua Perawat</button>
-        <button onclick="showForm('perawatForm', 'add')">Tambah Perawat Baru</button>
-        <div id="perawatData" class="data-section"></div>
+        <h2 class="text-3xl font-semibold text-blue-700 mb-4">Data Perawat</h2>
+        <div class="flex flex-wrap gap-2 mb-4">
+            <button id="btnPerawat" onclick="toggleData('allPerawat', 'perawatData', 'btnPerawat')" class="bg-blue-400 hover:bg-blue-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Muat Semua Perawat</button>
+            <button onclick="showForm('perawatForm', 'add')" class="bg-green-400 hover:bg-green-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Tambah Perawat Baru</button>
+        </div>
+        <div id="perawatData" class="data-section mt-4 pt-4 border-t border-gray-200 table-container" style="display: none;"></div>
 
-        <div id="perawatForm" class="form-section" style="display: none;">
-            <h3><span id="perawat_formTitle">Tambah</span> Perawat</h3>
+        <div id="perawatForm" class="form-section mt-5 p-6 border border-blue-200 rounded-lg bg-blue-50 shadow-md" style="display: none;">
+            <h3 class="text-2xl font-semibold text-blue-700 mb-4"><span id="perawat_formTitle">Tambah</span> Perawat</h3>
             <input type="hidden" id="perawat_id_perawat">
-            <label for="perawat_id_nakes">ID Nakes:</label>
-            <input type="number" id="perawat_id_nakes" required>
-            <label for="perawat_nip">NIP:</label>
-            <input type="text" id="perawat_nip" required>
-            <label for="perawat_nama_perawat">Nama Perawat:</label>
-            <input type="text" id="perawat_nama_perawat" required>
-            <label for="perawat_status">Status:</label>
-            <input type="text" id="perawat_status" required>
-            <label for="perawat_str">STR:</label>
-            <input type="text" id="perawat_str" required>
-            <label for="perawat_spesialisasi">Spesialisasi:</label>
-            <input type="text" id="perawat_spesialisasi" required>
-            <label for="perawat_no_hp">No HP:</label>
-            <input type="text" id="perawat_no_hp" required>
-            <button onclick="submitPerawatForm()">Simpan</button>
-            <button onclick="hideForm('perawatForm')">Batal</button>
+            <label for="perawat_id_nakes" class="block text-base font-medium text-gray-700 mb-1">ID Nakes:</label>
+            <input type="number" id="perawat_id_nakes" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="perawat_nip" class="block text-base font-medium text-gray-700 mb-1">NIP:</label>
+            <input type="text" id="perawat_nip" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="perawat_nama_perawat" class="block text-base font-medium text-gray-700 mb-1">Nama Perawat:</label>
+            <input type="text" id="perawat_nama_perawat" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="perawat_status" class="block text-base font-medium text-gray-700 mb-1">Status:</label>
+            <input type="text" id="perawat_status" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="perawat_str" class="block text-base font-medium text-gray-700 mb-1">STR:</label>
+            <input type="text" id="perawat_str" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="perawat_spesialisasi" class="block text-base font-medium text-gray-700 mb-1">Spesialisasi:</label>
+            <input type="text" id="perawat_spesialisasi" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <label for="perawat_no_hp" class="block text-base font-medium text-gray-700 mb-1">No HP:</label>
+            <input type="text" id="perawat_no_hp" required class="w-full p-2 mb-4 border border-blue-300 rounded-md focus:ring-blue-400 focus:border-blue-400 focus:outline-none bg-white text-gray-800">
+            <div class="flex gap-2 mt-4">
+                <button onclick="submitPerawatForm()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Simpan</button>
+                <button onclick="hideForm('perawatForm')" class="bg-gray-400 hover:bg-gray-500 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Batal</button>
+            </div>
         </div>
     </div>
 
-    <div id="detail-container"></div>
-    <div id="modal-overlay" onclick="hideDetail()"></div>
+    <div id="detail-container" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-lg shadow-xl z-50 min-w-[320px] max-w-lg max-h-[90vh] overflow-y-auto border border-blue-200" style="display:none;">
+        <h3 class="text-2xl font-semibold text-blue-700 mb-4 pb-2 border-b border-gray-200"></h3>
+        <ul class="list-none p-0 mb-6 space-y-2 text-gray-700"></ul>
+        <button onclick="hideDetail()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Tutup</button>
+    </div>
+    <div id="modal-overlay" onclick="hideDetail()" class="fixed inset-0 bg-gray-900 bg-opacity-40 z-40" style="display:none;"></div>
+
+    <div id="toast-container"></div>
 
     <script>
         const API_URL = 'http://localhost:8000'; 
 
-        
+        // Fungsi untuk menampilkan indikator loading
+        function showLoading() {
+            document.getElementById('loading-indicator').style.display = 'flex';
+        }
+
+        // Fungsi untuk menyembunyikan indikator loading
+        function hideLoading() {
+            document.getElementById('loading-indicator').style.display = 'none';
+        }
+
+        // Fungsi untuk menampilkan Toast Message
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                ${type === 'success' ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' : ''}
+                ${type === 'error' ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' : ''}
+                ${type === 'info' ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' : ''}
+                <span>${message}</span>
+            `;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 4000); // Toast disappears after 4 seconds (matches CSS animation)
+        }
+
+        // Fungsi baru untuk toggling data dan teks tombol
+        async function toggleData(entity, dataElementId, buttonId) {
+            const dataContainer = document.getElementById(dataElementId);
+            const button = document.getElementById(buttonId);
+
+            if (dataContainer.style.display === 'none' || dataContainer.innerHTML === '') {
+                // Jika tersembunyi atau kosong, muat data
+                await fetchData(entity); 
+                dataContainer.style.display = 'block';
+                button.textContent = `Sembunyikan Semua ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()}`;
+                button.classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                button.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            } else {
+                // Jika terlihat, sembunyikan data
+                dataContainer.style.display = 'none';
+                button.textContent = `Muat Semua ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()}`;
+                button.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                button.classList.add('bg-blue-400', 'hover:bg-blue-500');
+            }
+        }
+
+
         function showForm(formId, mode = 'add', data = {}) {
+            // Sembunyikan semua tabel saat form muncul
+            document.querySelectorAll('.data-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            // Reset teks tombol "Muat/Sembunyikan"
+            document.getElementById('btnTenagaKesehatan').textContent = 'Muat Semua Tenaga Kesehatan';
+            document.getElementById('btnTenagaKesehatan').classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            document.getElementById('btnTenagaKesehatan').classList.add('bg-blue-400', 'hover:bg-blue-500');
+
+            document.getElementById('btnPasien').textContent = 'Muat Semua Pasien';
+            document.getElementById('btnPasien').classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            document.getElementById('btnPasien').classList.add('bg-blue-400', 'hover:bg-blue-500');
+
+            document.getElementById('btnDokter').textContent = 'Muat Semua Dokter';
+            document.getElementById('btnDokter').classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            document.getElementById('btnDokter').classList.add('bg-blue-400', 'hover:bg-blue-500');
+
+            document.getElementById('btnPerawat').textContent = 'Muat Semua Perawat';
+            document.getElementById('btnPerawat').classList.remove('bg-gray-500', 'hover:bg-gray-600');
+            document.getElementById('btnPerawat').classList.add('bg-blue-400', 'hover:bg-blue-500');
+
+
             const form = document.getElementById(formId);
             let formTitleElement;
 
-            
             if (formId === 'tenagaKesehatanForm') {
                 formTitleElement = document.getElementById('tk_formTitle');
             } else if (formId === 'pasienForm') {
@@ -253,7 +351,6 @@
                 }
             } else if (mode === 'edit') {
                 formTitleElement.textContent = 'Edit';
-                // Isi form fields dengan data yang ada berdasarkan formId
                 if (formId === 'tenagaKesehatanForm') {
                     document.getElementById('tk_id_nakes').value = data.id_nakes || '';
                     document.getElementById('tk_nip').value = data.nip || '';
@@ -269,14 +366,8 @@
                     document.getElementById('pasien_id_pasien').value = data.id_pasien || '';
                     document.getElementById('pasien_nik').value = data.nik || '';
                     document.getElementById('pasien_nama_lengkap').value = data.nama_lengkap || '';
-                    
-                    // --- PERUBAHAN UTAMA DI SINI UNTUK JENIS KELAMIN SAAT EDIT ---
-                    // Karena select option value-nya adalah 'L' atau 'P', kita bisa langsung assign
                     document.getElementById('pasien_jenis_kelamin').value = data.jenis_kelamin || '';
-                    // --- AKHIR PERUBAHAN ---
-
-                    // Tanggal lahir perlu diformat ulang jika dari DB dalam format berbeda (misal YYYY-MM-DD HH:MM:SS)
-                    document.getElementById('pasien_tanggal_lahir').value = data.tanggal_lahir ? data.tanggal_lahir.split(' ')[0] : ''; // Menggunakan split(' ') untuk memisahkan tanggal dari waktu
+                    document.getElementById('pasien_tanggal_lahir').value = data.tanggal_lahir ? data.tanggal_lahir.split(' ')[0] : ''; 
                     document.getElementById('pasien_no_bpjs').value = data.no_bpjs || '';
                     document.getElementById('pasien_pekerjaan').value = data.pekerjaan || '';
                     document.getElementById('pasien_status_pernikahan').value = data.status_pernikahan || '';
@@ -336,12 +427,12 @@
             document.getElementById(formId).style.display = 'none';
         }
 
-        // Fungsi utama untuk mengambil data (query)
-        async function fetchData(entity) {
+        async function fetchData(entity) { // Removed searchQuery parameter
+            showLoading(); // Tampilkan loading sebelum fetch
             let query = '';
             let targetElementId = '';
             let fields = '';
-
+            
             switch (entity) {
                 case 'allTenagaKesehatan':
                     fields = `id_nakes nip role str`;
@@ -361,11 +452,12 @@
                     break;
                 default:
                     console.error('Entity not recognized');
+                    hideLoading(); // Sembunyikan loading jika ada error di awal
                     return;
             }
 
-            query = `query { ${entity} { ${fields} } }`;
-            console.log("Fetching data with query:", query); // DEBUG
+            query = `query { ${entity} { ${fields} } }`; // Simplified query, no search argument
+            console.log("Fetching data with query:", query); 
 
             try {
                 const response = await fetch(API_URL, {
@@ -380,91 +472,97 @@
                 if (!contentType || !contentType.includes("application/json")) {
                     const text = await response.text();
                     const dataContainer = document.getElementById(targetElementId);
-                    dataContainer.innerHTML = `<p style="color: red;">Error: Server response was not JSON. Raw response: <pre>${text}</pre></p>`;
+                    dataContainer.innerHTML = `<p class="text-red-600">Error: Server response was not JSON. Raw response: <pre class="bg-gray-100 p-2 rounded-md overflow-x-auto text-sm">${text}</pre></p>`;
                     console.error("Server responded with non-JSON content:", text);
+                    showToast('Error: Respon server bukan JSON.', 'error');
+                    hideLoading(); // Sembunyikan loading saat ada error
                     return;
                 }
 
                 const result = await response.json();
                 const dataContainer = document.getElementById(targetElementId);
 
-                console.log("GraphQL response for", entity, ":", result); // DEBUG
+                console.log("GraphQL response for", entity, ":", result); 
 
                 if (result.errors) {
-                    dataContainer.innerHTML = `<p style="color: red;">Error: ${result.errors[0].message}</p>`;
+                    dataContainer.innerHTML = `<p class="text-red-600">Error: ${result.errors[0].message}</p>`;
                     console.error("GraphQL Errors:", result.errors);
+                    showToast(`Error memuat data ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()}: ${result.errors[0].message}`, 'error');
                 } else if (result.data) {
                     const data = result.data[entity];
                     if (data && data.length > 0) {
-                        console.log("Data received for rendering:", data); // DEBUG
-                        renderTable(data, dataContainer, entity); // Panggil fungsi renderTable
+                        console.log("Data received for rendering:", data); 
+                        renderTable(data, dataContainer, entity); 
+                        // showToast(`Data ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()} berhasil dimuat.`, 'success'); // Toast moved to toggleData
                     } else {
-                        dataContainer.innerHTML = `<p>Tidak ada data ${entity.replace('all', '')} ditemukan.</p>`;
+                        dataContainer.innerHTML = `<p class="text-gray-600">Tidak ada data ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()} ditemukan.</p>`;
+                        showToast(`Tidak ada data ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()} ditemukan.`, 'info');
                     }
                 } else {
-                    dataContainer.innerHTML = `<p>Tidak ada data yang diterima dari API.</p>`;
+                    dataContainer.innerHTML = `<p class="text-gray-600">Tidak ada data yang diterima dari API.</p>`;
+                    showToast(`Tidak ada data yang diterima dari API untuk ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()}.`, 'info');
                 }
             } catch (error) {
                 const dataContainer = document.getElementById(targetElementId);
-                dataContainer.innerHTML = `<p style="color: red;">Fetch error: ${error.message}</p>`;
+                dataContainer.innerHTML = `<p class="text-red-600">Fetch error: ${error.message}</p>`;
                 console.error("Fetch Error:", error);
+                showToast(`Gagal memuat data ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()}: ${error.message}`, 'error');
+            } finally {
+                hideLoading(); // Pastikan loading disembunyikan di akhir, baik sukses atau error
             }
         }
 
-        // Fungsi untuk merender tabel dengan tombol aksi
         function renderTable(data, containerElement, entity) {
             if (!data || data.length === 0) {
-                containerElement.innerHTML = `<p>Tidak ada data untuk ditampilkan.</p>`;
+                containerElement.innerHTML = `<p class="text-gray-600">Tidak ada data untuk ditampilkan.</p>`;
                 return;
             }
 
             const headers = Object.keys(data[0]);
-            let tableHtml = '<table><thead><tr>';
+            let tableHtml = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm"><thead><tr>';
             headers.forEach(header => {
-                tableHtml += `<th>${header.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</th>`;
+                tableHtml += `<th class="py-3 px-4 bg-blue-100 border-b border-gray-200 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider">${header.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</th>`;
             });
-            tableHtml += `<th>Aksi</th></tr></thead><tbody>`;
+            tableHtml += `<th class="py-3 px-4 bg-blue-100 border-b border-gray-200 text-left text-sm font-semibold text-blue-700 uppercase tracking-wider">Aksi</th></tr></thead><tbody>`;
 
             data.forEach(row => {
                 tableHtml += '<tr>';
                 headers.forEach(header => {
-                    // Penanganan khusus untuk tanggal agar tampil lebih rapi
                     if (header.includes('tanggal_lahir') && row[header]) {
                         const date = new Date(row[header]);
-                        tableHtml += `<td>${date.toLocaleDateString('id-ID')}</td>`; // Format tanggal sesuai lokal Indonesia
+                        tableHtml += `<td class="py-2 px-4 border-b border-gray-200 text-sm text-gray-700">${date.toLocaleDateString('id-ID')}</td>`;
                     } else if (header === 'jenis_kelamin' && row[header]) {
-                        // Tampilkan 'Laki-laki' atau 'Perempuan' di tabel
-                        tableHtml += `<td>${row[header] === 'L' ? 'Laki-laki' : (row[header] === 'P' ? 'Perempuan' : row[header])}</td>`;
+                        tableHtml += `<td class="py-2 px-4 border-b border-gray-200 text-sm text-gray-700">${row[header] === 'L' ? 'Laki-laki' : (row[header] === 'P' ? 'Perempuan' : row[header])}</td>`;
                     }
                     else {
-                        tableHtml += `<td>${row[header] !== null ? row[header] : 'N/A'}</td>`;
+                        tableHtml += `<td class="py-2 px-4 border-b border-gray-200 text-sm text-gray-700">${row[header] !== null ? row[header] : '<span class="text-gray-400">N/A</span>'}</td>`;
                     }
                 });
-                tableHtml += `<td class="action-buttons">`;
+                tableHtml += `<td class="action-buttons py-2 px-4 border-b border-gray-200 flex flex-wrap gap-1">`;
                 
                 const encodedRowData = btoa(JSON.stringify(row));
-                console.log("Row to encode for", entity, ":", row, "Encoded:", encodedRowData); // DEBUG
+                console.log("Row to encode for", entity, ":", row, "Encoded:", encodedRowData); 
 
-                tableHtml += `<button onclick="editEntity('${entity}', '${encodedRowData}')">Edit</button>`;
-                tableHtml += `<button onclick="deleteEntity('${entity}', ${row[idFieldName(entity)]})">Delete</button>`;
-                tableHtml += `<button onclick="showDetail('${entity}', '${encodedRowData}')">Detail</button>`;
+                tableHtml += `<button onclick="editEntity('${entity}', '${encodedRowData}')" class="bg-yellow-300 hover:bg-yellow-400 text-yellow-800 py-1 px-2 rounded-md text-xs font-semibold shadow-sm transition duration-300 ease-in-out">Edit</button>`;
+                tableHtml += `<button onclick="deleteEntity('${entity}', ${row[idFieldName(entity)]})" class="bg-red-300 hover:bg-red-400 text-red-800 py-1 px-2 rounded-md text-xs font-semibold shadow-sm transition duration-300 ease-in-out">Delete</button>`;
+                tableHtml += `<button onclick="showDetail('${entity}', '${encodedRowData}')" class="bg-blue-300 hover:bg-blue-400 text-blue-800 py-1 px-2 rounded-md text-xs font-semibold shadow-sm transition duration-300 ease-in-out">Detail</button>`;
                 tableHtml += `</td></tr>`;
             });
-            tableHtml += '</tbody></table>';
+            tableHtml += '</tbody></table></div>';
             containerElement.innerHTML = tableHtml;
         }
 
-    
-
        
         async function submitTenagaKesehatanForm() {
+            showLoading(); // Tampilkan loading sebelum submit
             const id_nakes_val = document.getElementById('tk_id_nakes').value;
             const nip = document.getElementById('tk_nip').value;
             const role = document.getElementById('tk_role').value;
             const str = document.getElementById('tk_str').value;
 
             if (!nip || !role || !str) {
-                alert('Semua field (NIP, Role, STR) harus diisi.');
+                showToast('Semua field (NIP, Role, STR) harus diisi.', 'error');
+                hideLoading(); // Sembunyikan loading jika ada validasi gagal
                 return;
             }
 
@@ -514,47 +612,59 @@
                 console.log("Mutation response:", result); 
 
                 if (result.errors) {
-                    alert('Error: ' + result.errors[0].message);
+                    showToast('Error: ' + result.errors[0].message, 'error');
                     console.error("GraphQL Mutation Error:", result.errors);
                 } else if (result.data && result.data[mutationName]) {
-                    alert(`Data Tenaga Kesehatan ${mutationName === 'createTenagaKesehatan' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    showToast(`Data Tenaga Kesehatan ${mutationName === 'createTenagaKesehatan' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`, 'success');
                     hideForm('tenagaKesehatanForm');
+                    // Pastikan tabel di-refresh dan ditampilkan jika form berhasil
+                    document.getElementById('tenagaKesehatanData').style.display = 'block';
+                    document.getElementById('btnTenagaKesehatan').textContent = 'Sembunyikan Semua Tenaga Kesehatan';
+                    document.getElementById('btnTenagaKesehatan').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnTenagaKesehatan').classList.add('bg-gray-500', 'hover:bg-gray-600');
                     fetchData('allTenagaKesehatan'); 
                 } else {
-                    alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    showToast(`Operasi ${mutationName} berhasil, namun ada masalah dalam respons.`, 'info');
                     console.log("Mutation success with no specific return data or unexpected structure:", result);
                     hideForm('tenagaKesehatanForm');
+                    document.getElementById('tenagaKesehatanData').style.display = 'block';
+                    document.getElementById('btnTenagaKesehatan').textContent = 'Sembunyikan Semua Tenaga Kesehatan';
+                    document.getElementById('btnTenagaKesehatan').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnTenagaKesehatan').classList.add('bg-gray-500', 'hover:bg-gray-600');
                     fetchData('allTenagaKesehatan');
                 }
             } catch (error) {
-                alert('Fetch error: ' + error.message);
+                showToast('Fetch error: ' + error.message, 'error');
                 console.error("Fetch Error during mutation:", error);
+            } finally {
+                hideLoading(); // Sembunyikan loading di akhir
             }
         }
 
-        // Fungsi submit untuk Pasien
         async function submitPasienForm() {
+            showLoading(); // Tampilkan loading sebelum submit
             const id_pasien_val = document.getElementById('pasien_id_pasien').value;
             const nik = document.getElementById('pasien_nik').value;
             const nama_lengkap = document.getElementById('pasien_nama_lengkap').value;
-            // LANGSUNG AMBIL NILAI 'L' atau 'P' dari select
             const jenis_kelamin = document.getElementById('pasien_jenis_kelamin').value; 
             const tanggal_lahir = document.getElementById('pasien_tanggal_lahir').value;
             const no_bpjs = document.getElementById('pasien_no_bpjs').value;
             const pekerjaan = document.getElementById('pasien_pekerjaan').value;
             const status_pernikahan = document.getElementById('pasien_status_pernikahan').value;
 
-            // Validasi sederhana
             if (!nik || !nama_lengkap || !jenis_kelamin || !tanggal_lahir || !pekerjaan || !status_pernikahan) {
-                alert('Semua field wajib (NIK, Nama Lengkap, Jenis Kelamin, Tanggal Lahir, Pekerjaan, Status Pernikahan) harus diisi.');
+                showToast('Semua field wajib (NIK, Nama Lengkap, Jenis Kelamin, Tanggal Lahir, Pekerjaan, Status Pernikahan) harus diisi.', 'error');
+                hideLoading(); // Sembunyikan loading jika ada validasi gagal
                 return;
             }
-            if (jenis_kelamin === '') { // Pastikan 'Pilih' tidak terpilih
-                alert('Jenis Kelamin harus dipilih.');
+            if (jenis_kelamin === '') { 
+                showToast('Jenis Kelamin harus dipilih.', 'error');
+                hideLoading(); // Sembunyikan loading jika ada validasi gagal
                 return;
             }
-            if (status_pernikahan === '') { // Pastikan 'Pilih' tidak terpilih
-                alert('Status Pernikahan harus dipilih.');
+            if (status_pernikahan === '') { 
+                showToast('Status Pernikahan harus dipilih.', 'error');
+                hideLoading(); // Sembunyikan loading jika ada validasi gagal
                 return;
             }
 
@@ -562,7 +672,7 @@
             let variables = {};
             let mutationName = '';
 
-            if (id_pasien_val) { // Mode Edit Pasien
+            if (id_pasien_val) { 
                 mutationName = 'updatePasien';
                 mutation = `
                     mutation UpdatePasien(
@@ -583,7 +693,7 @@
                     id_pasien: parseInt(id_pasien_val), nik, nama_lengkap,
                     jenis_kelamin, tanggal_lahir, no_bpjs, pekerjaan, status_pernikahan
                 };
-            } else { // Mode Tambah Pasien
+            } else { 
                 mutationName = 'createPasien';
                 mutation = `
                     mutation CreatePasien(
@@ -602,7 +712,7 @@
                 `;
                 variables = {
                     nik, nama_lengkap, jenis_kelamin, tanggal_lahir,
-                    no_bpjs: no_bpjs === '' ? null : no_bpjs, // Kirim null jika kosong untuk opsional
+                    no_bpjs: no_bpjs === '' ? null : no_bpjs, 
                     pekerjaan, status_pernikahan
                 };
             }
@@ -620,26 +730,37 @@
                 console.log("Pasien mutation response:", result);
 
                 if (result.errors) {
-                    alert('Error: ' + result.errors[0].message);
+                    showToast('Error: ' + result.errors[0].message, 'error');
                     console.error("GraphQL Pasien Mutation Error:", result.errors);
                 } else if (result.data && result.data[mutationName]) {
-                    alert(`Data Pasien ${mutationName === 'createPasien' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    showToast(`Data Pasien ${mutationName === 'createPasien' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`, 'success');
                     hideForm('pasienForm');
-                    fetchData('allPasien'); // Refresh data pasien setelah operasi
+                    // Pastikan tabel di-refresh dan ditampilkan jika form berhasil
+                    document.getElementById('pasienData').style.display = 'block';
+                    document.getElementById('btnPasien').textContent = 'Sembunyikan Semua Pasien';
+                    document.getElementById('btnPasien').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnPasien').classList.add('bg-gray-500', 'hover:bg-gray-600');
+                    fetchData('allPasien'); 
                 } else {
-                    alert(`Operasi ${mutationName} Pasien berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    showToast(`Operasi ${mutationName} Pasien berhasil, namun ada masalah dalam respons.`, 'info');
                     console.log("Pasien Mutation success with no specific return data or unexpected structure:", result);
                     hideForm('pasienForm');
+                    document.getElementById('pasienData').style.display = 'block';
+                    document.getElementById('btnPasien').textContent = 'Sembunyikan Semua Pasien';
+                    document.getElementById('btnPasien').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnPasien').classList.add('bg-gray-500', 'hover:bg-gray-600');
                     fetchData('allPasien');
                 }
             } catch (error) {
-                alert('Fetch error: ' + error.message);
+                showToast('Fetch error: ' + error.message, 'error');
                 console.error("Fetch Error during Pasien mutation:", error);
+            } finally {
+                hideLoading(); // Sembunyikan loading di akhir
             }
         }
 
-        // Fungsi submit untuk Dokter
         async function submitDokterForm() {
+            showLoading(); // Tampilkan loading sebelum submit
             const id_dokter = document.getElementById('dokter_id_dokter').value;
             const idNakes = document.getElementById('dokter_id_nakes').value;
             const nip = document.getElementById('dokter_nip').value;
@@ -696,19 +817,34 @@
 
                 const result = await response.json();
                 if (result.errors) {
-                    alert('Error: ' + result.errors[0].message);
+                    showToast('Error: ' + result.errors[0].message, 'error');
                 } else if (result.data && result.data[mutationName]) {
-                    alert(`Data Dokter ${mutationName === 'createDokter' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    showToast(`Data Dokter ${mutationName === 'createDokter' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`, 'success');
                     hideForm('dokterForm');
+                    // Pastikan tabel di-refresh dan ditampilkan jika form berhasil
+                    document.getElementById('dokterData').style.display = 'block';
+                    document.getElementById('btnDokter').textContent = 'Sembunyikan Semua Dokter';
+                    document.getElementById('btnDokter').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnDokter').classList.add('bg-gray-500', 'hover:bg-gray-600');
+                    fetchData('allDokter');
+                } else {
+                    showToast(`Operasi ${mutationName} Dokter berhasil, namun ada masalah dalam respons.`, 'info');
+                    hideForm('dokterForm');
+                    document.getElementById('dokterData').style.display = 'block';
+                    document.getElementById('btnDokter').textContent = 'Sembunyikan Semua Dokter';
+                    document.getElementById('btnDokter').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnDokter').classList.add('bg-gray-500', 'hover:bg-gray-600');
                     fetchData('allDokter');
                 }
             } catch (error) {
-                alert('Fetch error: ' + error.message);
+                showToast('Fetch error: ' + error.message, 'error');
+            } finally {
+                hideLoading(); // Sembunyikan loading di akhir
             }
         }
 
-        
         async function submitPerawatForm() {
+            showLoading(); // Tampilkan loading sebelum submit
             const id_perawat = document.getElementById('perawat_id_perawat').value;
             const idNakes = document.getElementById('perawat_id_nakes').value;
             const nip = document.getElementById('perawat_nip').value;
@@ -719,7 +855,8 @@
             const noHp = document.getElementById('perawat_no_hp').value;
 
             if (!idNakes || !nip || !namaPerawat || !status || !str || !spesialisasi || !noHp) {
-                alert('Semua field (ID Nakes, NIP, Nama Perawat, Status, STR, Spesialisasi, No HP) harus diisi.');
+                showToast('Semua field (ID Nakes, NIP, Nama Perawat, Status, STR, Spesialisasi, No HP) harus diisi.', 'error');
+                hideLoading(); // Sembunyikan loading jika ada validasi gagal
                 return;
             }
 
@@ -804,25 +941,35 @@
                 console.log("Perawat mutation response:", result); 
 
                 if (result.errors) {
-                    alert('Error: ' + result.errors[0].message);
+                    showToast('Error: ' + result.errors[0].message, 'error');
                     console.error("GraphQL Perawat Mutation Error:", result.errors);
                 } else if (result.data && result.data[mutationName]) {
-                    alert(`Data Perawat ${mutationName === 'createPerawat' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`);
+                    showToast(`Data Perawat ${mutationName === 'createPerawat' ? 'Ditambahkan' : 'Diperbarui'} berhasil!`, 'success');
                     hideForm('perawatForm');
+                    // Pastikan tabel di-refresh dan ditampilkan jika form berhasil
+                    document.getElementById('perawatData').style.display = 'block';
+                    document.getElementById('btnPerawat').textContent = 'Sembunyikan Semua Perawat';
+                    document.getElementById('btnPerawat').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnPerawat').classList.add('bg-gray-500', 'hover:bg-gray-600');
                     fetchData('allPerawat');
                 } else {
-                    alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    showToast(`Operasi ${mutationName} berhasil, namun ada masalah dalam respons.`, 'info');
                     console.log("Perawat Mutation success with no specific return data or unexpected structure:", result);
                     hideForm('perawatForm');
+                    document.getElementById('perawatData').style.display = 'block';
+                    document.getElementById('btnPerawat').textContent = 'Sembunyikan Semua Perawat';
+                    document.getElementById('btnPerawat').classList.remove('bg-blue-400', 'hover:bg-blue-500');
+                    document.getElementById('btnPerawat').classList.add('bg-gray-500', 'hover:bg-gray-600');
                     fetchData('allPerawat');
                 }
             } catch (error) {
-                alert('Fetch error: ' + error.message);
+                showToast('Fetch error: ' + error.message, 'error');
                 console.error("Fetch Error during Perawat mutation:", error);
+            } finally {
+                hideLoading(); // Sembunyikan loading di akhir
             }
         }
 
-        
         function editEntity(entity, encodedData) {
             console.log("editEntity called. Entity:", entity, "Encoded Data:", encodedData); 
             try {
@@ -840,60 +987,54 @@
                 }
             } catch (e) {
                 console.error("Error decoding or parsing data in editEntity:", e);
-                alert("Failed to load data for editing. Check console for details.");
+                showToast("Gagal memuat data untuk diedit. Lihat konsol untuk detail.", 'error');
             }
         }
 
-        
         async function deleteEntity(entity, id) {
             if (!confirm(`Apakah Anda yakin ingin menghapus data ${entity.replace('all', '')} dengan ID ${id}?`)) {
                 return;
             }
+            showLoading(); // Tampilkan loading sebelum delete
 
             let mutation = '';
             let mutationName = '';
             let idField = idFieldName(entity);
 
-            if (entity === 'allTenagaKesehatan') {
+  if (entity === 'allTenagaKesehatan') {
                 mutationName = 'deleteTenagaKesehatan';
                 mutation = `
-                    mutation DeleteTenagaKesehatan($${idField}: Int!) {
-                        deleteTenagaKesehatan(${idField}: $${idField}) {
-                            ${idField}
-                        }
+                    mutation DeleteTenagaKesehatan($id_nakes: Int!) {
+                    deleteTenagaKesehatan(id_nakes: $id_nakes)
                     }
                 `;
             } else if (entity === 'allPasien') {
                 mutationName = 'deletePasien';
                 mutation = `
-                    mutation DeletePasien($${idField}: Int!) {
-                        deletePasien(${idField}: $${idField}) {
-                            ${idField}
-                        }
-                    }
+                    mutation DeletePasien($id_pasien: Int!) {
+                     deletePasien(id_pasien: $id_pasien)
+                }
                 `;
             } else if (entity === 'allDokter') {
                 mutationName = 'deleteDokter';
                 mutation = `
-                    mutation DeleteDokter($${idField}: Int!) {
-                        deleteDokter(${idField}: $${idField}) {
-                            ${idField}
-                        }
-                    }
+                    mutation DeleteDokter($id_dokter: Int!) {
+                    deleteDokter(id_dokter: $id_dokter)
+                }
                 `;
             } else if (entity === 'allPerawat') {
                 mutationName = 'deletePerawat';
                 mutation = `
-                    mutation DeletePerawat($${idField}: Int!) {
-                        deletePerawat(${idField}: $${idField}) {
-                            ${idField}
-                        }
+                    mutation DeletePerawat($id_perawat: Int!) {
+                    deletePerawat(id_perawat: $id_perawat)
                     }
                 `;
             }
 
+
             if (!mutation) {
-                alert('Operasi delete tidak didukung untuk entitas ini.');
+                showToast('Operasi delete tidak didukung untuk entitas ini.', 'error');
+                hideLoading(); // Sembunyikan loading jika operasi tidak didukung
                 return;
             }
 
@@ -911,46 +1052,56 @@
                 console.log("Delete mutation response:", result); 
 
                 if (result.errors) {
-                    alert('Error: ' + result.errors[0].message);
+                    showToast('Error: ' + result.errors[0].message, 'error');
                     console.error("GraphQL Delete Error:", result.errors);
                 } else if (result.data && result.data[mutationName]) {
-                    alert('Dihapus berhasil!');
-                    fetchData(entity); 
+                    showToast('Data berhasil dihapus!', 'success');
+                    // Setelah delete, pastikan tabel diperbarui dan tombol kembali ke 'Muat'
+                    document.getElementById(dataElementIdFromEntity(entity)).style.display = 'none'; // Sembunyikan tabel setelah delete
+                    const btnId = buttonIdFromEntity(entity);
+                    if (btnId) {
+                        document.getElementById(btnId).textContent = `Muat Semua ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()}`;
+                        document.getElementById(btnId).classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                        document.getElementById(btnId).classList.add('bg-blue-400', 'hover:bg-blue-500');
+                    }
+                    // Kita tidak memanggil fetchData langsung setelah delete karena tabel akan disembunyikan.
+                    // Data akan dimuat lagi saat tombol "Muat" ditekan.
                 } else {
-                    alert(`Operasi ${mutationName} berhasil, namun tidak ada data yang dikembalikan atau nama mutasi tidak ditemukan dalam respons data.`);
+                    showToast(`Operasi ${mutationName} berhasil, namun ada masalah dalam respons.`, 'info');
                     console.log("Delete success with no specific return data or unexpected structure:", result);
-                    fetchData(entity);
+                    // Sama seperti di atas, tidak panggil fetchData
                 }
             } catch (error) {
-                alert('Fetch error: ' + error.message);
+                showToast('Fetch error: ' + error.message, 'error');
                 console.error("Fetch Error during delete:", error);
+            } finally {
+                hideLoading(); // Sembunyikan loading di akhir
             }
         }
 
-        
         function showDetail(entity, encodedData) {
             console.log("showDetail called. Entity:", entity, "Encoded Data:", encodedData); 
             try {
                 const data = JSON.parse(atob(encodedData)); 
                 console.log("Decoded data for detail:", data); 
 
-                let detailHtml = `<h3>Detail ${entity.replace('all', '')}</h3>`;
-                detailHtml += `<ul>`;
+                let detailHtml = `<h3 class="text-2xl font-semibold text-blue-700 mb-4 pb-2 border-b border-gray-200">Detail ${entity.replace('all', '').replace(/([A-Z])/g, ' $1').trim()}</h3>`;
+                detailHtml += `<ul class="list-none p-0 mb-6 space-y-2 text-gray-700">`;
                 for (const key in data) {
                  
-                    if (key === 'tanggal_lahir' && data[key]) {
+                    if (key.includes('tanggal_lahir') && data[key]) {
                         const date = new Date(data[key]);
-                        detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${date.toLocaleDateString('id-ID')}</li>`;
+                        detailHtml += `<li><strong class="font-bold text-blue-600">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${date.toLocaleDateString('id-ID')}</li>`;
                     } else if (key === 'jenis_kelamin' && data[key]) {
                         
-                        detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${data[key] === 'L' ? 'Laki-laki' : (data[key] === 'P' ? 'Perempuan' : data[key])}</li>`;
+                        detailHtml += `<li><strong class="font-bold text-blue-600">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${data[key] === 'L' ? 'Laki-laki' : (data[key] === 'P' ? 'Perempuan' : data[key])}</li>`;
                     }
                     else {
-                        detailHtml += `<li><strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${data[key] !== null ? data[key] : 'N/A'}</li>`;
+                        detailHtml += `<li><strong class="font-bold text-blue-600">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${data[key] !== null ? data[key] : '<span class="text-gray-400">N/A</span>'}</li>`;
                     }
                 }
                 detailHtml += `</ul>`;
-                detailHtml += `<button onclick="hideDetail()">Tutup</button>`;
+                detailHtml += `<button onclick="hideDetail()" class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">Tutup</button>`;
 
                 const detailContainer = document.getElementById('detail-container');
                 detailContainer.innerHTML = detailHtml;
@@ -958,7 +1109,7 @@
                 document.getElementById('modal-overlay').style.display = 'block';
             } catch (e) {
                 console.error("Error decoding or parsing data in showDetail:", e);
-                alert("Failed to load detail data. Check console for details.");
+                showToast("Gagal memuat detail data. Lihat konsol untuk detail.", 'error');
             }
         }
 
@@ -967,7 +1118,6 @@
             document.getElementById('modal-overlay').style.display = 'none';
         }
 
-        
         function idFieldName(entity) {
             switch (entity) {
                 case 'allTenagaKesehatan': return 'id_nakes';
@@ -975,6 +1125,28 @@
                 case 'allDokter': return 'id_dokter';
                 case 'allPerawat': return 'id_perawat';
                 default: return 'id'; 
+            }
+        }
+
+        // Fungsi bantu untuk mendapatkan ID elemen data dari nama entitas
+        function dataElementIdFromEntity(entity) {
+            switch (entity) {
+                case 'allTenagaKesehatan': return 'tenagaKesehatanData';
+                case 'allPasien': return 'pasienData';
+                case 'allDokter': return 'dokterData';
+                case 'allPerawat': return 'perawatData';
+                default: return '';
+            }
+        }
+
+        // Fungsi bantu untuk mendapatkan ID tombol dari nama entitas
+        function buttonIdFromEntity(entity) {
+            switch (entity) {
+                case 'allTenagaKesehatan': return 'btnTenagaKesehatan';
+                case 'allPasien': return 'btnPasien';
+                case 'allDokter': return 'btnDokter';
+                case 'allPerawat': return 'btnPerawat';
+                default: return '';
             }
         }
     </script>
