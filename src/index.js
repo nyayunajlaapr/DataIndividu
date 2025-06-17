@@ -22,7 +22,7 @@ async function startServer() {
   await server.start();
   server.applyMiddleware({ app });
 
-  const PORT = process.env.PORT || 9000;
+  const PORT = 8005;
   app.listen(PORT, () => {
     console.log(`🚀 DataIndividu ready at http://localhost:${PORT}${server.graphqlPath}`);
   });

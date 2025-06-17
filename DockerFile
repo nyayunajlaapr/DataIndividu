@@ -11,7 +11,7 @@ COPY . .
 # EXPOSE 8000
 
 # Ubah expose ke 9000 (Railway pakai ini)
-EXPOSE 9000
+EXPOSE 8005
 
 # Tetap gunakan entry point yang benar
 CMD ["node", "src/index.js"]
