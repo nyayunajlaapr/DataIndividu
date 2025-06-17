@@ -7,6 +7,11 @@ require("dotenv").config();
 async function startServer() {
   const app = express();
 
+  // app.use(express.static("public"));
+  // app.get("/", (req, res) => {
+  //   res.sendFile(__dirname + "/public/index.html");
+  // });
+
   const server = new ApolloServer({
     typeDefs,
     resolvers,
@@ -17,7 +22,7 @@ async function startServer() {
   await server.start();
   server.applyMiddleware({ app });
 
-  const PORT = process.env.PORT || 8003;
+  const PORT = process.env.PORT || 8000;
   app.listen(PORT, () => {
     console.log(`🚀 DataIndividu ready at http://localhost:${PORT}${server.graphqlPath}`);
   });
