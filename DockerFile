@@ -10,8 +10,8 @@ COPY . .
 # Local development port
 # EXPOSE 8000
 
-# Ubah expose ke 8080 (Railway pakai ini)
-EXPOSE 8080
+# Ubah expose ke 9000 (Railway pakai ini)
+EXPOSE 9000
 
 # Tetap gunakan entry point yang benar
 CMD ["node", "src/index.js"]
